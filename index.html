@@ -1,57 +1,115 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Our Secret Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Space</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #000; color: white; height: 100vh; display: flex; flex-direction: column; }
     
-    /* Login Screen */
-    #login-screen { display: flex; justify-content: center; align-items: center; height: 100%; background: #fff; position: fixed; width: 100%; z-index: 99; }
-    input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-    button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    
-    /* Chat Screen (Hidden by default) */
-    #chat-screen { display: none; flex-direction: column; height: 100%; }
-    #messages { list-style-type: none; margin: 0; padding: 20px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    #messages li { padding: 10px 15px; border-radius: 20px; max-width: 70%; word-wrap: break-word; }
-    
-    /* Styling for "My" messages vs "Her" messages */
-    .my-message { background: #007bff; color: white; align-self: flex-end; }
-    .other-message { background: #e4e6eb; color: black; align-self: flex-start; }
+    /* LOGIN */
+    #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; gap: 15px; }
+    input.auth { padding: 15px; background: #222; border: 1px solid #333; color: white; border-radius: 8px; width: 250px; }
+    button.auth { padding: 15px 30px; background: #0095f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-    #form { background: rgba(0, 0, 0, 0.15); padding: 0.5rem; display: flex; height: 3rem; box-sizing: content-box; backdrop-filter: blur(10px); }
-    #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
-    #input:focus { outline: none; }
+    /* CHAT */
+    #chat-screen { display: none; flex-direction: column; height: 100%; }
+    #header { padding: 15px; border-bottom: 1px solid #333; font-weight: bold; text-align: center; background: #111; display: flex; justify-content: space-between; align-items: center;}
+    
+    #messages { list-style: none; padding: 20px; margin: 0; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    
+    .msg-container { max-width: 75%; padding: 10px 15px; border-radius: 20px; position: relative; font-size: 15px; line-height: 1.4; user-select: none; } /* user-select none helps with long press */
+    .my-msg { align-self: flex-end; background: #3797f0; color: white; border-bottom-right-radius: 5px; }
+    .other-msg { align-self: flex-start; background: #262626; color: white; border-bottom-left-radius: 5px; }
+    
+    .username-label { font-size: 10px; opacity: 0.7; margin-bottom: 3px; display: block; }
+    .edited-label { font-size: 10px; opacity: 0.6; margin-left: 5px; font-style: italic; }
+
+    .msg-img { max-width: 100%; border-radius: 10px; }
+    
+    /* REACTIONS */
+    .reaction-bar { position: absolute; bottom: -12px; right: 0; background: #222; border-radius: 10px; padding: 2px 6px; font-size: 12px; border: 1px solid #000; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+    /* INPUT */
+    #form-container { padding: 10px; background: #000; display: flex; align-items: center; gap: 10px; border-top: 1px solid #333; }
+    #input { flex-grow: 1; padding: 12px; border-radius: 25px; border: 1px solid #333; background: #121212; color: white; outline: none; }
+    .icon-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; }
+    
+    /* CONTEXT MENU (Hidden by default) */
+    #context-menu { position: fixed; background: #222; border: 1px solid #444; border-radius: 12px; display: none; flex-direction: column; width: 200px; z-index: 200; box-shadow: 0 4px 15px rgba(0,0,0,0.5); overflow: hidden; }
+    .ctx-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 10px; }
+    .ctx-item:hover { background: #333; }
+    .ctx-item:last-child { border-bottom: none; }
+    .ctx-danger { color: #ff4d4d; }
+    
+    .emoji-row { display: flex; justify-content: space-around; padding: 10px; border-bottom: 1px solid #333; background: #1a1a1a; }
+    .emoji-opt { font-size: 22px; cursor: pointer; transition: transform 0.1s; }
+    .emoji-opt:active { transform: scale(1.3); }
+
+    /* OVERLAY for menu */
+    #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 199; }
   </style>
 </head>
 <body>
 
   <div id="login-screen">
-    <div style="text-align: center;">
-      <h2>Enter Secret Code</h2>
-      <input id="code-input" type="password" placeholder="Passcode..." />
-      <button onclick="attemptLogin()">Enter</button>
-      <p id="error-msg" style="color: red; display: none;">Wrong code!</p>
-    </div>
+    <h2>🔒 Us ❤️</h2>
+    <input id="username" class="auth" placeholder="Your Name" />
+    <input id="secret-code" type="password" class="auth" placeholder="Code" />
+    <button class="auth" onclick="login()">Enter Chat</button>
   </div>
 
   <div id="chat-screen">
+    <div id="header">
+        <span>❤️ Connected</span>
+        <button onclick="logout()" style="background:none; border:none; color: #666; font-size: 12px;">Exit</button>
+    </div>
     <ul id="messages"></ul>
-    <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>Send</button>
-    </form>
+    
+    <div id="form-container">
+      <label for="img-upload" class="icon-btn"><i class="fas fa-image"></i></label>
+      <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="sendImage()" />
+      <input id="input" autocomplete="off" placeholder="Message..." />
+      <button id="send-btn" class="icon-btn" style="color: #3797f0;"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+
+  <div id="menu-overlay" onclick="closeMenu()"></div>
+  <div id="context-menu">
+    <div class="emoji-row">
+        <span class="emoji-opt" onclick="react('❤️')">❤️</span>
+        <span class="emoji-opt" onclick="react('😂')">😂</span>
+        <span class="emoji-opt" onclick="react('😮')">😮</span>
+        <span class="emoji-opt" onclick="react('😢')">😢</span>
+        <span class="emoji-opt" onclick="react('😡')">😡</span>
+        <span class="emoji-opt" onclick="react('👍')">👍</span>
+    </div>
+    <div class="ctx-item" id="btn-edit" onclick="startEdit()"><i class="fas fa-edit"></i> Edit</div>
+    <div class="ctx-item ctx-danger" id="btn-unsend" onclick="unsend()"><i class="fas fa-trash"></i> Unsend</div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    var socket = io();
-    var myId = socket.id; // To track which message is mine
+    const socket = io();
+    let myName = localStorage.getItem('chat_username') || "";
+    let selectedMsgId = null;
+    let selectedMsgIsMine = false;
 
-    // Login Logic
-    function attemptLogin() {
-      const code = document.getElementById('code-input').value;
-      socket.emit('auth', code);
+    // AUTO LOGIN IF SAVED
+    if(myName) document.getElementById('username').value = myName;
+
+    function login() {
+      const code = document.getElementById('secret-code').value;
+      myName = document.getElementById('username').value.trim();
+      if(!myName || !code) return alert("Fill details!");
+      
+      localStorage.setItem('chat_username', myName); // Save username
+      socket.emit('join', { code, username: myName });
+    }
+
+    function logout() {
+      localStorage.removeItem('chat_username');
+      location.reload();
     }
 
     socket.on('auth-success', () => {
@@ -59,38 +117,162 @@
       document.getElementById('chat-screen').style.display = 'flex';
     });
 
-    socket.on('auth-fail', () => {
-      document.getElementById('error-msg').style.display = 'block';
-    });
+    socket.on('auth-fail', () => alert("Wrong Code!"));
 
-    // Chat Logic
-    var form = document.getElementById('form');
-    var input = document.getElementById('input');
-    var messages = document.getElementById('messages');
+    // --- MESSAGING ---
+    const messages = document.getElementById('messages');
+    const input = document.getElementById('input');
 
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
+    document.getElementById('send-btn').onclick = () => {
       if (input.value) {
-        // Send message object so we can ID who sent it
-        socket.emit('chat message', { text: input.value, id: socket.id });
+        socket.emit('chat message', { text: input.value, type: 'text' });
         input.value = '';
       }
+    };
+
+    socket.on('load-history', (history) => {
+      messages.innerHTML = '';
+      history.forEach(addMessageToUI);
+      messages.scrollTop = messages.scrollHeight;
     });
 
-    socket.on('chat message', function(msg) {
-      var item = document.createElement('li');
-      item.textContent = msg.text;
+    socket.on('chat message', (msg) => {
+      addMessageToUI(msg);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    // --- UNSEND & EDIT LISTENERS ---
+    socket.on('message-unsent', (msgId) => {
+      const el = document.getElementById(msgId);
+      if(el) el.remove();
+    });
+
+    socket.on('message-edited', ({ messageId, newText }) => {
+      const el = document.getElementById(messageId);
+      if(el) {
+        const textSpan = el.querySelector('.msg-text');
+        if(textSpan) textSpan.innerText = newText;
+        if(!el.querySelector('.edited-label')) {
+           el.innerHTML += `<span class="edited-label">(edited)</span>`;
+        }
+      }
+    });
+
+    function addMessageToUI(msg) {
+      const li = document.createElement('li');
+      li.className = `msg-container ${msg.username === myName ? 'my-msg' : 'other-msg'}`;
+      li.id = msg._id;
       
-      // Check if I sent this message or she did
-      if (msg.id === socket.id) {
-        item.classList.add('my-message');
-      } else {
-        item.classList.add('other-message');
+      // Long Press / Right Click Logic
+      li.oncontextmenu = (e) => showMenu(e, msg._id, msg.username === myName);
+      
+      // Mobile Long Press
+      let pressTimer;
+      li.ontouchstart = (e) => {
+        pressTimer = setTimeout(() => showMenu(e, msg._id, msg.username === myName), 500);
+      }
+      li.ontouchend = () => clearTimeout(pressTimer);
+
+      let content = "";
+      if(msg.username !== myName) content += `<span class="username-label">${msg.username}</span>`;
+      
+      if (msg.type === 'text') {
+        content += `<span class="msg-text">${msg.text}</span>`;
+      } else if (msg.type === 'image') {
+        content += `<img src="${msg.text}" class="msg-img" />`;
       }
       
-      messages.appendChild(item);
-      window.scrollTo(0, document.body.scrollHeight);
-    });
+      if(msg.isEdited) content += `<span class="edited-label">(edited)</span>`;
+
+      li.innerHTML = content;
+
+      // Reactions Container
+      const reactionDiv = document.createElement('div');
+      reactionDiv.className = 'reaction-bar';
+      reactionDiv.id = `react-${msg._id}`;
+      li.appendChild(reactionDiv);
+      updateReactionsUI(msg._id, msg.reactions);
+
+      messages.appendChild(li);
+    }
+
+    // --- REACTION LOGIC ---
+    socket.on('update-reaction', ({ messageId, reactions }) => updateReactionsUI(messageId, reactions));
+
+    function updateReactionsUI(msgId, reactions) {
+      const el = document.getElementById(`react-${msgId}`);
+      if (!el) return;
+      
+      // Simple logic: Show the last 3 reactions
+      const reactionValues = reactions instanceof Map ? Array.from(reactions.values()) : Object.values(reactions);
+      
+      if (reactionValues.length > 0) {
+        el.style.display = 'block';
+        el.innerText = reactionValues.join(' '); 
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    // --- CONTEXT MENU LOGIC ---
+    const menu = document.getElementById('context-menu');
+    const overlay = document.getElementById('menu-overlay');
+
+    function showMenu(e, msgId, isMine) {
+      e.preventDefault();
+      selectedMsgId = msgId;
+      selectedMsgIsMine = isMine;
+      
+      // Show/Hide Edit & Unsend based on ownership
+      document.getElementById('btn-edit').style.display = isMine ? 'flex' : 'none';
+      document.getElementById('btn-unsend').style.display = isMine ? 'flex' : 'none';
+
+      // Position Menu
+      let x = e.clientX || e.touches[0].clientX;
+      let y = e.clientY || e.touches[0].clientY;
+      
+      // Keep inside screen
+      if(x + 200 > window.innerWidth) x = window.innerWidth - 210;
+      
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      menu.style.display = 'flex';
+      overlay.style.display = 'block';
+    }
+
+    function closeMenu() {
+      menu.style.display = 'none';
+      overlay.style.display = 'none';
+      selectedMsgId = null;
+    }
+
+    function react(emoji) {
+      if(selectedMsgId) socket.emit('react', { messageId: selectedMsgId, reaction: emoji });
+      closeMenu();
+    }
+
+    function unsend() {
+      if(selectedMsgId && selectedMsgIsMine) socket.emit('unsend-message', selectedMsgId);
+      closeMenu();
+    }
+
+    function startEdit() {
+      if(!selectedMsgId || !selectedMsgIsMine) return;
+      const newText = prompt("Edit your message:");
+      if(newText) socket.emit('edit-message', { messageId: selectedMsgId, newText });
+      closeMenu();
+    }
+
+    // --- IMAGE ---
+    function sendImage() {
+      const file = document.getElementById('img-upload').files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        socket.emit('chat message', { text: e.target.result, type: 'image' });
+      };
+      reader.readAsDataURL(file);
+    }
   </script>
 </body>
 </html>
