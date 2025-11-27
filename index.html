@@ -285,7 +285,7 @@
       const nameInput = document.getElementById('username');
       
       if(mode === 'instant') {
-        title.innerText = "Instant Access ⚡";
+        title.innerText = "Instant Short Msg ⚡";
         nameInput.style.display = 'none'; // HIDE NAME INPUT
       } else {
         title.innerText = "Login 🔒";
@@ -570,10 +570,11 @@
       closeMenu();
     }
 
-    // --- VIDEO CALL LOGIC ---
+   // --- FINAL FIXED VIDEO LOGIC (With Connection Queue) ---
     let localStream;
     let peerConnection;
     let activeCallSocket = null;
+    let iceCandidatesQueue = []; // <--- The Waiting Room for connection details
     
     const rtcConfig = {
       iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]
@@ -601,12 +602,12 @@
         socket.emit("call-user", { offer });
         
       } catch(err) { 
-        alert("Camera access denied or error starting call."); 
-        console.error(err);
+        alert("Camera error. Make sure permissions are allowed."); 
       }
     }
 
     socket.on("call-made", async data => {
+      // 1. Alert user
       if(!confirm("Incoming Video Call. Accept?")) return;
       
       activeCallSocket = data.socket;
@@ -625,7 +626,16 @@
         document.getElementById("remote-video").srcObject = event.streams[0];
       };
 
+      // 2. Set Remote Description
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+      
+      // 3. PROCESS THE WAITING QUEUE (The Fix!)
+      // Apply any connection details that arrived while we were waiting
+      while (iceCandidatesQueue.length > 0) {
+        const candidate = iceCandidatesQueue.shift();
+        await peerConnection.addIceCandidate(candidate);
+      }
+
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
 
@@ -635,33 +645,38 @@
     socket.on("answer-made", async data => {
       activeCallSocket = data.socket;
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      
+      // Also process queue here just in case
+      while (iceCandidatesQueue.length > 0) {
+        const candidate = iceCandidatesQueue.shift();
+        await peerConnection.addIceCandidate(candidate);
+      }
     });
 
+    // 4. SMART CANDIDATE HANDLING
     socket.on("ice-candidate", async data => {
-      if(peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      const candidate = new RTCIceCandidate(data.candidate);
+      
+      // If connection is ready, add immediately
+      if(peerConnection && peerConnection.remoteDescription) {
+        await peerConnection.addIceCandidate(candidate);
+      } else {
+        // If not ready, save to the Waiting Room (Queue)
+        iceCandidatesQueue.push(candidate);
+      }
     });
     
-    socket.on("call-ended", () => {
-       endCallUI();
-    });
-    
-   // --- FINAL VIDEO CALL FUNCTIONS ---
+    socket.on("call-ended", () => { endCallUI(); });
 
-    // 1. The Main Hangup Function (Attached to the red button)
-    function endCall() {
-      socket.emit("hang-up"); // Tell the other person
-      endCallUI();            // Close my screen
-    }
+    function endCall() { socket.emit("hang-up"); endCallUI(); }
     
-    // 2. The Visual Cleanup (Resets everything)
     function endCallUI() {
       if(peerConnection) peerConnection.close();
-      if(localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
+      if(localStream) localStream.getTracks().forEach(track => track.stop());
       document.getElementById("video-container").style.display = "none";
+      iceCandidatesQueue = []; // Clear queue
       
-      // Reset Buttons to default (Dark Grey)
+      // Reset buttons
       document.getElementById("btn-mute").style.background = "#444";
       document.getElementById("icon-mute").className = "fas fa-microphone";
       
@@ -671,52 +686,38 @@
           btnCam.style.background = "#444";
           iconCam.className = "fas fa-video";
       }
-      
-      location.reload(); // Refresh page to ensure clean state
+      location.reload(); 
     }
     
-    // 3. Mute Logic
     function toggleMute() {
        if(!localStream) return;
        const audioTrack = localStream.getAudioTracks()[0];
        if(audioTrack) {
          audioTrack.enabled = !audioTrack.enabled;
-         
          const btn = document.getElementById("btn-mute");
          const icon = document.getElementById("icon-mute");
-         
-         if(audioTrack.enabled) {
-           btn.style.background = "#444";
-           icon.className = "fas fa-microphone";
-         } else {
-           btn.style.background = "#ff4d4d"; 
-           icon.className = "fas fa-microphone-slash";
-         }
+         if(audioTrack.enabled) { btn.style.background = "#444"; icon.className = "fas fa-microphone"; } 
+         else { btn.style.background = "#ff4d4d"; icon.className = "fas fa-microphone-slash"; }
        }
     }
 
-    // 4. Camera Logic
     function toggleCam() {
        if(!localStream) return;
        const videoTrack = localStream.getVideoTracks()[0];
        if(videoTrack) {
          videoTrack.enabled = !videoTrack.enabled;
-         
          const btn = document.getElementById("btn-cam");
          const icon = document.getElementById("icon-cam");
-         
-         if(videoTrack.enabled) {
-           btn.style.background = "#444";
-           icon.className = "fas fa-video";
-         } else {
-           btn.style.background = "#ff4d4d"; 
-           icon.className = "fas fa-video-slash";
-         }
+         if(videoTrack.enabled) { btn.style.background = "#444"; icon.className = "fas fa-video"; } 
+         else { btn.style.background = "#ff4d4d"; icon.className = "fas fa-video-slash"; }
        }
     }
+    
+   
   </script>
 </body>
 </html>
+
 
 
 
