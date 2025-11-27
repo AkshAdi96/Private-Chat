@@ -6,7 +6,18 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     :root { --primary: #3797f0; --bg: #000; --msg-bg: #262626; --text: #fff; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* 1. MOBILE LAYOUT FIXES */
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      margin: 0; 
+      background: var(--bg); 
+      color: var(--text); 
+      height: 100dvh; /* Dynamic height for mobile */
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+    }
     
     /* LOGIN SCREEN */
     #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; gap: 15px; }
@@ -14,14 +25,39 @@
     button.auth { padding: 15px 30px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
 
     /* HEADER */
-    #header { padding: 15px; border-bottom: 1px solid #333; background: #111; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+    #header { 
+      padding: 15px; 
+      border-bottom: 1px solid #333; 
+      background: #111; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      font-weight: bold; 
+      height: 60px; 
+      box-sizing: border-box; 
+      flex-shrink: 0; 
+    }
     .status-dot { height: 10px; width: 10px; background-color: #555; border-radius: 50%; display: inline-block; margin-right: 5px; }
     .online { background-color: #00d647; box-shadow: 0 0 5px #00d647; }
-    #status-text { font-size: 12px; color: #888; font-weight: normal; }
+    #status-text { font-size: 12px; color: #00d647; font-weight: normal; }
 
     /* CHAT AREA */
-    #chat-screen { display: none; flex-direction: column; height: 100%; }
-    #messages { list-style: none; padding: 20px; margin: 0; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    #chat-screen { display: none; flex-direction: column; height: 100%; width: 100%; position: relative; }
+    
+    /* MESSAGES LIST */
+    #messages { 
+      list-style: none; 
+      padding: 20px; 
+      /* Important: Add padding at bottom equal to input bar height so messages aren't hidden */
+      padding-bottom: 90px; 
+      margin: 0; 
+      flex-grow: 1; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+      -webkit-overflow-scrolling: touch; 
+    }
     
     .msg-container { max-width: 75%; padding: 10px 15px; border-radius: 20px; position: relative; font-size: 15px; line-height: 1.4; word-wrap: break-word; user-select: none; }
     .my-msg { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 5px; }
@@ -30,17 +66,43 @@
     .username-label { font-size: 10px; opacity: 0.7; margin-bottom: 4px; display: block; }
     .edited-label { font-size: 10px; opacity: 0.6; font-style: italic; margin-left: 5px; }
     
-    .msg-img { max-width: 100%; border-radius: 10px; display: block; }
-    audio { height: 40px; width: 200px; filter: invert(1); } /* Dark mode audio player */
+    .msg-img { max-width: 100%; border-radius: 10px; display: block; margin-top: 5px; }
+    audio { height: 40px; width: 200px; filter: invert(1); margin-top: 5px; } 
 
     /* TYPING INDICATOR */
-    #typing-indicator { height: 20px; padding: 0 20px; font-size: 12px; color: #888; font-style: italic; }
+    #typing-indicator { 
+      position: fixed; 
+      bottom: 70px; /* Just above input bar */
+      left: 20px; 
+      height: 20px; 
+      font-size: 12px; 
+      color: #b100cd; 
+      font-style: italic; 
+      z-index: 15; 
+      pointer-events: none;
+    }
 
     /* REACTIONS */
     .reaction-bar { position: absolute; bottom: -12px; right: 0; background: #222; border-radius: 12px; padding: 2px 6px; font-size: 12px; border: 1px solid #000; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10; }
 
-    /* INPUT AREA */
-    #form-container { padding: 10px; background: #000; display: flex; align-items: center; gap: 10px; border-top: 1px solid #333; }
+    /* 2. FIXED INPUT BAR FOR MOBILE */
+    #form-container { 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      width: 100%; 
+      padding: 10px; 
+      background: #000; 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+      border-top: 1px solid #333; 
+      box-sizing: border-box; 
+      z-index: 20;
+      /* Handle iPhone X+ Home bar area */
+      padding-bottom: max(10px, env(safe-area-inset-bottom)); 
+    }
+    
     #input { flex-grow: 1; padding: 12px; border-radius: 25px; border: 1px solid #333; background: #121212; color: white; outline: none; font-size: 16px; }
     .icon-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 8px; transition: 0.2s; }
     .recording-anim { color: #ff3b30; animation: pulse 1s infinite; }
@@ -71,7 +133,7 @@
     <div id="header">
       <div style="display:flex; align-items:center;">
         <span id="online-dot" class="status-dot"></span>
-        <span id="chat-title">Us ❤️</span>
+        <span id="chat-title">Us</span>
       </div>
       <span id="status-text">Waiting...</span>
     </div>
@@ -93,258 +155,3 @@
 
   <div id="menu-overlay" onclick="closeMenu()"></div>
   <div id="context-menu">
-    <div class="emoji-row">
-      <span class="emoji-opt" onclick="react('❤️')">❤️</span>
-      <span class="emoji-opt" onclick="react('😂')">😂</span>
-      <span class="emoji-opt" onclick="react('😮')">😮</span>
-      <span class="emoji-opt" onclick="react('😢')">😢</span>
-      <span class="emoji-opt" onclick="react('👍')">👍</span>
-    </div>
-    <div class="ctx-item" id="btn-edit" onclick="startEdit()"><i class="fas fa-pen"></i> Edit Message</div>
-    <div class="ctx-item ctx-danger" id="btn-unsend" onclick="unsend()"><i class="fas fa-trash"></i> Unsend</div>
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    let myName = localStorage.getItem('chat_username') || "";
-    let selectedMsgId = null;
-    let selectedMsgIsMine = false;
-    let typingTimer;
-
-    // --- INITIALIZATION ---
-    if(myName) document.getElementById('username').value = myName;
-
-    function login() {
-      const code = document.getElementById('secret-code').value;
-      myName = document.getElementById('username').value.trim();
-      if(!myName || !code) return alert("Please enter name and code");
-      localStorage.setItem('chat_username', myName);
-      socket.emit('join', { code, username: myName });
-    }
-
-    socket.on('auth-success', () => {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('chat-screen').style.display = 'flex';
-    });
-    
-    socket.on('auth-fail', () => alert("Incorrect Code!"));
-
-    // --- ONLINE STATUS ---
-    socket.on('update-online-users', (users) => {
-      const statusText = document.getElementById('status-text');
-      const dot = document.getElementById('online-dot');
-      
-      // If someone else is in the list besides me
-      const others = users.filter(u => u !== myName);
-      
-      if (others.length > 0) {
-        statusText.innerText = `${others.join(', ')} is online`;
-        dot.classList.add('online');
-      } else {
-        statusText.innerText = "Only you";
-        dot.classList.remove('online');
-      }
-    });
-
-    // --- CHAT LOGIC ---
-    const messages = document.getElementById('messages');
-    const input = document.getElementById('input');
-
-    // Send Text
-    document.getElementById('send-btn').onclick = () => {
-      if (input.value.trim()) {
-        socket.emit('chat message', { text: input.value, type: 'text' });
-        input.value = '';
-        socket.emit('stop-typing');
-      }
-    };
-
-    // Typing Indicators
-    input.addEventListener('input', () => {
-      socket.emit('typing');
-      clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => socket.emit('stop-typing'), 1000);
-    });
-
-    socket.on('display-typing', (user) => {
-      document.getElementById('typing-indicator').innerText = `${user} is typing...`;
-    });
-    socket.on('hide-typing', () => {
-      document.getElementById('typing-indicator').innerText = '';
-    });
-
-    // Receive Message
-    socket.on('chat message', (msg) => {
-      addMessageToUI(msg);
-      scrollToBottom();
-    });
-
-    socket.on('load-history', (history) => {
-      messages.innerHTML = '';
-      history.forEach(addMessageToUI);
-      scrollToBottom();
-    });
-
-    function scrollToBottom() {
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    // --- RENDER MESSAGE ---
-    function addMessageToUI(msg) {
-      const li = document.createElement('li');
-      li.className = `msg-container ${msg.username === myName ? 'my-msg' : 'other-msg'}`;
-      li.id = msg._id;
-      
-      // Long press / Right click
-      li.oncontextmenu = (e) => showMenu(e, msg._id, msg.username === myName);
-      let pressTimer;
-      li.ontouchstart = (e) => { pressTimer = setTimeout(() => showMenu(e, msg._id, msg.username === myName), 500); };
-      li.ontouchend = () => clearTimeout(pressTimer);
-
-      let content = "";
-      if(msg.username !== myName) content += `<span class="username-label">${msg.username}</span>`;
-      
-      if (msg.type === 'text') {
-        content += `<span class="msg-text">${msg.text}</span>`;
-      } else if (msg.type === 'image') {
-        content += `<img src="${msg.text}" class="msg-img" />`;
-      } else if (msg.type === 'audio') {
-        content += `<audio controls src="${msg.text}"></audio>`;
-      }
-
-      if(msg.isEdited) content += `<span class="edited-label">(edited)</span>`;
-
-      li.innerHTML = content;
-      
-      // Reaction container
-      const reactionDiv = document.createElement('div');
-      reactionDiv.className = 'reaction-bar';
-      reactionDiv.id = `react-${msg._id}`;
-      li.appendChild(reactionDiv);
-      updateReactionsUI(msg._id, msg.reactions);
-
-      messages.appendChild(li);
-    }
-
-    // --- MEDIA: IMAGES ---
-    function sendImage() {
-      const file = document.getElementById('img-upload').files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'image' });
-      reader.readAsDataURL(file);
-    }
-
-    // --- MEDIA: VOICE NOTES ---
-    let mediaRecorder;
-    let audioChunks = [];
-    const micBtn = document.getElementById('mic-btn');
-    let isRecording = false;
-
-    micBtn.onclick = async () => {
-      if (!isRecording) {
-        // Start Recording
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.start();
-          isRecording = true;
-          micBtn.classList.add('recording-anim');
-          
-          audioChunks = [];
-          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-          
-          mediaRecorder.onstop = () => {
-             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-             const reader = new FileReader();
-             reader.readAsDataURL(audioBlob);
-             reader.onloadend = () => {
-               socket.emit('chat message', { text: reader.result, type: 'audio' });
-             };
-          };
-        } catch(err) {
-          alert("Microphone access denied!");
-        }
-      } else {
-        // Stop Recording
-        mediaRecorder.stop();
-        isRecording = false;
-        micBtn.classList.remove('recording-anim');
-      }
-    };
-
-    // --- EDIT / UNSEND / REACTION LOGIC ---
-    socket.on('message-unsent', (id) => {
-      const el = document.getElementById(id);
-      if(el) el.remove();
-    });
-
-    socket.on('message-edited', ({ messageId, newText }) => {
-      const el = document.getElementById(messageId);
-      if(el) {
-        const textSpan = el.querySelector('.msg-text');
-        if(textSpan) textSpan.innerText = newText;
-        if(!el.querySelector('.edited-label')) el.innerHTML += `<span class="edited-label">(edited)</span>`;
-      }
-    });
-
-    socket.on('update-reaction', ({ messageId, reactions }) => updateReactionsUI(messageId, reactions));
-
-    function updateReactionsUI(msgId, reactions) {
-      const el = document.getElementById(`react-${msgId}`);
-      if (!el) return;
-      const vals = reactions instanceof Map ? Array.from(reactions.values()) : Object.values(reactions);
-      if (vals.length > 0) {
-        el.style.display = 'block';
-        el.innerText = vals.join('');
-      } else {
-        el.style.display = 'none';
-      }
-    }
-
-    // --- CONTEXT MENU HELPERS ---
-    const menu = document.getElementById('context-menu');
-    const overlay = document.getElementById('menu-overlay');
-
-    function showMenu(e, msgId, isMine) {
-      e.preventDefault();
-      selectedMsgId = msgId;
-      selectedMsgIsMine = isMine;
-      
-      document.getElementById('btn-edit').style.display = isMine ? 'flex' : 'none';
-      document.getElementById('btn-unsend').style.display = isMine ? 'flex' : 'none';
-
-      let x = e.clientX || e.touches[0].clientX;
-      let y = e.clientY || e.touches[0].clientY;
-      if (x + 220 > window.innerWidth) x = window.innerWidth - 230;
-
-      menu.style.left = x + 'px';
-      menu.style.top = y + 'px';
-      menu.style.display = 'flex';
-      overlay.style.display = 'block';
-    }
-
-    function closeMenu() {
-      menu.style.display = 'none';
-      overlay.style.display = 'none';
-    }
-
-    function react(emoji) {
-      if(selectedMsgId) socket.emit('react', { messageId: selectedMsgId, reaction: emoji });
-      closeMenu();
-    }
-    function unsend() {
-      if(selectedMsgId && selectedMsgIsMine) socket.emit('unsend-message', selectedMsgId);
-      closeMenu();
-    }
-    function startEdit() {
-      if(selectedMsgId && selectedMsgIsMine) {
-        const newText = prompt("Edit message:");
-        if(newText) socket.emit('edit-message', { messageId: selectedMsgId, newText });
-      }
-      closeMenu();
-    }
-  </script>
-</body>
-</html>
