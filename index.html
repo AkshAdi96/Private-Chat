@@ -170,6 +170,9 @@
   <div id="chat-screen" class="screen hidden">
     <div id="header">
       <div style="display:flex; align-items:center;">
+        <button id="video-btn" onclick="startCall()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer; margin-left:10px;">
+           <i class="fas fa-video"></i>
+        </button>
         <span id="online-dot" class="status-dot"></span>
         <span id="chat-title">Us</span>
       </div>
@@ -205,7 +208,16 @@
     <div class="ctx-item" id="btn-edit" onclick="startEdit()"><i class="fas fa-pen"></i> Edit Message</div>
     <div class="ctx-item ctx-danger" id="btn-unsend" onclick="unsend()"><i class="fas fa-trash"></i> Unsend</div>
   </div>
-
+<div id="video-container" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:5000; flex-direction:column;">
+    <video id="remote-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+    <video id="local-video" autoplay playsinline muted style="position:absolute; bottom:100px; right:20px; width:100px; height:150px; background:#222; border:2px solid #333; border-radius:10px; object-fit:cover; z-index:5001;"></video>
+    
+    <div id="call-controls" style="position:absolute; bottom:30px; left:0; width:100%; display:flex; justify-content:center; gap:20px; z-index:5002;">
+      <button onclick="toggleMute()" style="width:50px; height:50px; border-radius:50%; border:none; background:#444; color:white; font-size:20px;"><i class="fas fa-microphone"></i></button>
+      <button onclick="endCall()" style="width:50px; height:50px; border-radius:50%; border:none; background:#ff4d4d; color:white; font-size:20px;"><i class="fas fa-phone-slash"></i></button>
+    </div>
+  </div>
+  
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
@@ -514,7 +526,100 @@
       }
       closeMenu();
     }
+
+    // --- VIDEO CALL LOGIC ---
+    let localStream;
+    let peerConnection;
+    let activeCallSocket = null;
+    
+    const rtcConfig = {
+      iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }]
+    };
+
+    async function startCall() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById("local-video").srcObject = localStream;
+        document.getElementById("video-container").style.display = "flex";
+        
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        peerConnection.onicecandidate = event => {
+          if (event.candidate) socket.emit("ice-candidate", { to: activeCallSocket, candidate: event.candidate });
+        };
+        
+        peerConnection.ontrack = event => {
+          document.getElementById("remote-video").srcObject = event.streams[0];
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit("call-user", { offer });
+        
+      } catch(err) { 
+        alert("Camera access denied or error starting call."); 
+        console.error(err);
+      }
+    }
+
+    socket.on("call-made", async data => {
+      if(!confirm("Incoming Video Call. Accept?")) return;
+      
+      activeCallSocket = data.socket;
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById("local-video").srcObject = localStream;
+      document.getElementById("video-container").style.display = "flex";
+
+      peerConnection = new RTCPeerConnection(rtcConfig);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) socket.emit("ice-candidate", { to: data.socket, candidate: event.candidate });
+      };
+
+      peerConnection.ontrack = event => {
+        document.getElementById("remote-video").srcObject = event.streams[0];
+      };
+
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+
+      socket.emit("make-answer", { answer, to: data.socket });
+    });
+
+    socket.on("answer-made", async data => {
+      activeCallSocket = data.socket;
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    });
+
+    socket.on("ice-candidate", async data => {
+      if(peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    });
+    
+    socket.on("call-ended", () => {
+       endCallUI();
+    });
+
+    function endCall() {
+      socket.emit("hang-up");
+      endCallUI();
+    }
+    
+    function endCallUI() {
+      if(peerConnection) peerConnection.close();
+      if(localStream) localStream.getTracks().forEach(track => track.stop());
+      document.getElementById("video-container").style.display = "none";
+      location.reload(); 
+    }
+    
+    function toggleMute() {
+       const audioTrack = localStream.getAudioTracks()[0];
+       if(audioTrack) audioTrack.enabled = !audioTrack.enabled;
+    }
   </script>
 </body>
 </html>
+
 
