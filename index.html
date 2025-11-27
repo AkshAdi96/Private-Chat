@@ -125,6 +125,26 @@
     .emoji-opt:active { transform: scale(1.4); }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
 
+    /* --- VIDEO CALL STYLES --- */
+    
+    #video-container { 
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: #111; z-index: 5000; display: none; flex-direction: column;
+    }
+    
+    #remote-video { 
+      width: 100%; height: 100%; object-fit: cover; 
+    }
+    
+    #local-video { 
+      position: absolute; bottom: 100px; right: 20px; 
+      width: 100px; height: 150px; background: #000; 
+      border: 2px solid #333; border-radius: 10px; object-fit: cover; z-index: 5001;
+      
+      /* THIS FLIPS YOUR CAMERA: */
+      transform: scaleX(-1); 
+    }
+
   </style>
 </head>
 <body>
@@ -208,13 +228,29 @@
     <div class="ctx-item" id="btn-edit" onclick="startEdit()"><i class="fas fa-pen"></i> Edit Message</div>
     <div class="ctx-item ctx-danger" id="btn-unsend" onclick="unsend()"><i class="fas fa-trash"></i> Unsend</div>
   </div>
-<div id="video-container" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:5000; flex-direction:column;">
+
+   
+  
+  <div id="video-container" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:5000; flex-direction:column;">
+    
     <video id="remote-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-    <video id="local-video" autoplay playsinline muted style="position:absolute; bottom:100px; right:20px; width:100px; height:150px; background:#222; border:2px solid #333; border-radius:10px; object-fit:cover; z-index:5001;"></video>
+    
+    <video id="local-video" autoplay playsinline muted style="position:absolute; bottom:100px; right:20px; width:100px; height:150px; background:#222; border:2px solid #333; border-radius:10px; object-fit:cover; z-index:5001; transform: scaleX(-1);"></video>
     
     <div id="call-controls" style="position:absolute; bottom:30px; left:0; width:100%; display:flex; justify-content:center; gap:20px; z-index:5002;">
-      <button onclick="toggleMute()" style="width:50px; height:50px; border-radius:50%; border:none; background:#444; color:white; font-size:20px;"><i class="fas fa-microphone"></i></button>
-      <button onclick="endCall()" style="width:50px; height:50px; border-radius:50%; border:none; background:#ff4d4d; color:white; font-size:20px;"><i class="fas fa-phone-slash"></i></button>
+      
+      <button id="btn-mute" onclick="toggleMute()" style="width:50px; height:50px; border-radius:50%; border:none; background:#444; color:white; font-size:20px; cursor:pointer;">
+        <i class="fas fa-microphone" id="icon-mute"></i>
+      </button>
+      
+      <button id="btn-cam" onclick="toggleCam()" style="width:50px; height:50px; border-radius:50%; border:none; background:#444; color:white; font-size:20px; cursor:pointer;">
+        <i class="fas fa-video" id="icon-cam"></i>
+      </button>
+
+      <button onclick="endCall()" style="width:50px; height:50px; border-radius:50%; border:none; background:#ff4d4d; color:white; font-size:20px; cursor:pointer;">
+        <i class="fas fa-phone-slash"></i>
+      </button>
+      
     </div>
   </div>
   
@@ -602,24 +638,69 @@
        endCallUI();
     });
 
-    function endCall() {
-      socket.emit("hang-up");
-      endCallUI();
-    }
+    // --- UPDATED BUTTON LOGIC (Paste this at the bottom of your script) ---
     
     function endCallUI() {
       if(peerConnection) peerConnection.close();
-      if(localStream) localStream.getTracks().forEach(track => track.stop());
+      if(localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
       document.getElementById("video-container").style.display = "none";
+      
+      // Reset Buttons to default (Dark Grey)
+      document.getElementById("btn-mute").style.background = "#444";
+      document.getElementById("icon-mute").className = "fas fa-microphone";
+      
+      const btnCam = document.getElementById("btn-cam");
+      const iconCam = document.getElementById("icon-cam");
+      if(btnCam) { // Check if exists to avoid errors
+          btnCam.style.background = "#444";
+          iconCam.className = "fas fa-video";
+      }
+      
       location.reload(); 
     }
     
     function toggleMute() {
        const audioTrack = localStream.getAudioTracks()[0];
-       if(audioTrack) audioTrack.enabled = !audioTrack.enabled;
+       if(audioTrack) {
+         audioTrack.enabled = !audioTrack.enabled;
+         
+         // Visual Feedback (Red = Muted)
+         const btn = document.getElementById("btn-mute");
+         const icon = document.getElementById("icon-mute");
+         
+         if(audioTrack.enabled) {
+           btn.style.background = "#444";
+           icon.className = "fas fa-microphone";
+         } else {
+           btn.style.background = "#ff4d4d"; 
+           icon.className = "fas fa-microphone-slash";
+         }
+       }
+    }
+
+    function toggleCam() {
+       const videoTrack = localStream.getVideoTracks()[0];
+       if(videoTrack) {
+         videoTrack.enabled = !videoTrack.enabled;
+         
+         // Visual Feedback (Red = Camera Off)
+         const btn = document.getElementById("btn-cam");
+         const icon = document.getElementById("icon-cam");
+         
+         if(videoTrack.enabled) {
+           btn.style.background = "#444";
+           icon.className = "fas fa-video";
+         } else {
+           btn.style.background = "#ff4d4d"; 
+           icon.className = "fas fa-video-slash";
+         }
+       }
     }
   </script>
 </body>
 </html>
+
 
 
