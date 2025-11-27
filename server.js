@@ -5,43 +5,69 @@ const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { maxHttpBufferSize: 1e8 }); // Increased to 100MB for safety
 
+// Limit increased to 50MB to allow sending Voice Notes and Images
+const io = new Server(server, { maxHttpBufferSize: 5e7 });
+
+// --- CONFIGURATION ---
 const MONGO_URI = process.env.MONGO_URI; 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB error:', err));
+const SECRET_CODE = process.env.SECRET_CODE || "1234";
 
+// --- DATABASE CONNECTION ---
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB error:', err));
+
+// --- DATA MODEL ---
 const messageSchema = new mongoose.Schema({
   username: String,
-  text: String,
+  text: String, // Stores text, or Base64 string for Image/Audio
   type: { type: String, enum: ['text', 'image', 'audio'], default: 'text' },
   reactions: { type: Map, of: String },
-  timestamp: { type: Date, default: Date.now },
-  isEdited: { type: Boolean, default: false } // New field to track edits
+  isEdited: { type: Boolean, default: false },
+  timestamp: { type: Date, default: Date.now }
 });
 const Message = mongoose.model('Message', messageSchema);
 
-const SECRET_CODE = process.env.SECRET_CODE || "default";
-
+// --- SERVE FRONTEND ---
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
+// --- TRACKING ONLINE USERS ---
+const onlineUsers = new Map(); // Maps socket.id -> username
+
 io.on('connection', (socket) => {
   let currentUser = null;
 
+  // 1. JOIN ROOM
   socket.on('join', async ({ code, username }) => {
     if (code === SECRET_CODE) {
       currentUser = username;
+      onlineUsers.set(socket.id, username);
+      
       socket.emit('auth-success');
+      
+      // Load History
       const history = await Message.find().sort({ timestamp: 1 }).limit(100);
       socket.emit('load-history', history);
+
+      // Broadcast Online Status
+      io.emit('update-online-users', Array.from(new Set(onlineUsers.values())));
     } else {
       socket.emit('auth-fail');
     }
   });
 
+  // 2. DISCONNECT
+  socket.on('disconnect', () => {
+    if (currentUser) {
+      onlineUsers.delete(socket.id);
+      io.emit('update-online-users', Array.from(new Set(onlineUsers.values())));
+    }
+  });
+
+  // 3. SEND MESSAGE (Text, Image, Audio)
   socket.on('chat message', async (data) => {
     if (!currentUser) return;
     const newMsg = new Message({
@@ -54,14 +80,21 @@ io.on('connection', (socket) => {
     io.emit('chat message', newMsg);
   });
 
-  // --- NEW FEATURES ---
+  // 4. TYPING INDICATOR
+  socket.on('typing', () => {
+    if (currentUser) socket.broadcast.emit('display-typing', currentUser);
+  });
+  
+  socket.on('stop-typing', () => {
+    socket.broadcast.emit('hide-typing');
+  });
 
-  // 1. REACTION (Supports multiple emojis)
+  // 5. REACTIONS
   socket.on('react', async ({ messageId, reaction }) => {
     if (!currentUser) return;
     const msg = await Message.findById(messageId);
     if (msg) {
-      // If clicking the same reaction again, remove it (toggle)
+      // Toggle reaction
       if (msg.reactions.get(currentUser) === reaction) {
         msg.reactions.delete(currentUser);
       } else {
@@ -72,24 +105,23 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 2. UNSEND (Delete)
-  socket.on('unsend-message', async (messageId) => {
-    // Security: Find message and check if it belongs to current user
-    const msg = await Message.findById(messageId);
-    if (msg && msg.username === currentUser) {
-      await Message.findByIdAndDelete(messageId);
-      io.emit('message-unsent', messageId);
-    }
-  });
-
-  // 3. EDIT
+  // 6. EDIT MESSAGE
   socket.on('edit-message', async ({ messageId, newText }) => {
     const msg = await Message.findById(messageId);
     if (msg && msg.username === currentUser) {
       msg.text = newText;
       msg.isEdited = true;
       await msg.save();
-      io.emit('message-edited', { messageId, newText, isEdited: true });
+      io.emit('message-edited', { messageId, newText });
+    }
+  });
+
+  // 7. UNSEND MESSAGE
+  socket.on('unsend-message', async (messageId) => {
+    const msg = await Message.findById(messageId);
+    if (msg && msg.username === currentUser) {
+      await Message.findByIdAndDelete(messageId);
+      io.emit('message-unsent', messageId);
     }
   });
 });
