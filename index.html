@@ -272,8 +272,17 @@
       
       if (msg.type === 'text') {
         content += `<span class="msg-text">${msg.text}</span>`;
-      } else if (msg.type === 'image') {
-        content += `<img src="${msg.text}" class="msg-img" />`;
+     } else if (msg.type === 'image') {
+        // Generate a random name for the download
+        const downloadName = `photo_${Date.now()}.png`;
+        
+        // Wrap image in a container to position the download button
+        content += `<div style="position: relative; display: inline-block;">
+                      <img src="${msg.text}" class="msg-img" />
+                      <a href="${msg.text}" download="${downloadName}" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 20px; text-decoration: none; font-size: 12px; backdrop-filter: blur(2px);">
+                        <i class="fas fa-download"></i> Save
+                      </a>
+                    </div>`;
       } else if (msg.type === 'audio') {
         content += `<audio controls src="${msg.text}"></audio>`;
       } 
@@ -432,5 +441,6 @@
   </script>
 </body>
 </html>
+
 
 
