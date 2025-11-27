@@ -21,8 +21,9 @@ mongoose.connect(MONGO_URI)
 // --- DATA MODEL ---
 const messageSchema = new mongoose.Schema({
   username: String,
-  text: String, // Stores text, or Base64 string for Image/Audio
-  type: { type: String, enum: ['text', 'image', 'audio'], default: 'text' },
+  text: String,
+  fileName: String, 
+  type: { type: String, enum: ['text', 'image', 'audio', 'document'], default: 'text' },
   reactions: { type: Map, of: String },
   isEdited: { type: Boolean, default: false },
   timestamp: { type: Date, default: Date.now }
@@ -68,11 +69,12 @@ io.on('connection', (socket) => {
   });
 
   // 3. SEND MESSAGE (Text, Image, Audio)
-  socket.on('chat message', async (data) => {
+ socket.on('chat message', async (data) => {
     if (!currentUser) return;
     const newMsg = new Message({
       username: currentUser,
       text: data.text,
+      fileName: data.fileName || "", 
       type: data.type || 'text',
       reactions: {}
     });
@@ -129,3 +131,4 @@ io.on('connection', (socket) => {
 server.listen(3000, () => {
   console.log('Server running on 3000');
 });
+
