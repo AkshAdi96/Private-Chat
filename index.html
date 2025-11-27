@@ -13,7 +13,7 @@
       margin: 0; 
       background: var(--bg); 
       color: var(--text); 
-      height: 100dvh; /* Dynamic height for mobile */
+      height: 100dvh; 
       display: flex; 
       flex-direction: column; 
       overflow: hidden; 
@@ -48,7 +48,6 @@
     #messages { 
       list-style: none; 
       padding: 20px; 
-      /* Important: Add padding at bottom equal to input bar height so messages aren't hidden */
       padding-bottom: 90px; 
       margin: 0; 
       flex-grow: 1; 
@@ -72,11 +71,11 @@
     /* TYPING INDICATOR */
     #typing-indicator { 
       position: fixed; 
-      bottom: 70px; /* Just above input bar */
+      bottom: 70px; 
       left: 20px; 
       height: 20px; 
       font-size: 12px; 
-      color: #b100cd; 
+      color: #b100cd; /* Your custom color */
       font-style: italic; 
       z-index: 15; 
       pointer-events: none;
@@ -85,7 +84,7 @@
     /* REACTIONS */
     .reaction-bar { position: absolute; bottom: -12px; right: 0; background: #222; border-radius: 12px; padding: 2px 6px; font-size: 12px; border: 1px solid #000; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10; }
 
-    /* 2. FIXED INPUT BAR FOR MOBILE */
+    /* INPUT BAR */
     #form-container { 
       position: fixed; 
       bottom: 0; 
@@ -99,7 +98,6 @@
       border-top: 1px solid #333; 
       box-sizing: border-box; 
       z-index: 20;
-      /* Handle iPhone X+ Home bar area */
       padding-bottom: max(10px, env(safe-area-inset-bottom)); 
     }
     
@@ -155,3 +153,252 @@
 
   <div id="menu-overlay" onclick="closeMenu()"></div>
   <div id="context-menu">
+    <div class="emoji-row">
+      <span class="emoji-opt" onclick="react('❤️')">❤️</span>
+      <span class="emoji-opt" onclick="react('😂')">😂</span>
+      <span class="emoji-opt" onclick="react('😮')">😮</span>
+      <span class="emoji-opt" onclick="react('😢')">😢</span>
+      <span class="emoji-opt" onclick="react('👍')">👍</span>
+    </div>
+    <div class="ctx-item" id="btn-edit" onclick="startEdit()"><i class="fas fa-pen"></i> Edit Message</div>
+    <div class="ctx-item ctx-danger" id="btn-unsend" onclick="unsend()"><i class="fas fa-trash"></i> Unsend</div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let myName = localStorage.getItem('chat_username') || "";
+    let selectedMsgId = null;
+    let selectedMsgIsMine = false;
+    let typingTimer;
+
+    if(myName) document.getElementById('username').value = myName;
+
+    function login() {
+      const code = document.getElementById('secret-code').value;
+      myName = document.getElementById('username').value.trim();
+      if(!myName || !code) return alert("Please enter name and code");
+      localStorage.setItem('chat_username', myName);
+      socket.emit('join', { code, username: myName });
+    }
+
+    socket.on('auth-success', () => {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('chat-screen').style.display = 'flex';
+      scrollToBottom();
+    });
+    
+    socket.on('auth-fail', () => alert("Incorrect Code!"));
+
+    socket.on('update-online-users', (users) => {
+      const statusText = document.getElementById('status-text');
+      const dot = document.getElementById('online-dot');
+      const others = users.filter(u => u !== myName);
+      
+      if (others.length > 0) {
+        statusText.innerText = `${others.join(', ')} is online`;
+        dot.classList.add('online');
+      } else {
+        statusText.innerText = "Only you";
+        dot.classList.remove('online');
+      }
+    });
+
+    const messages = document.getElementById('messages');
+    const input = document.getElementById('input');
+
+    input.addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.getElementById("send-btn").click();
+      }
+    });
+
+    document.getElementById('send-btn').onclick = () => {
+      if (input.value.trim()) {
+        socket.emit('chat message', { text: input.value, type: 'text' });
+        input.value = '';
+        socket.emit('stop-typing');
+        input.focus();
+      }
+    };
+
+    input.addEventListener('input', () => {
+      socket.emit('typing');
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => socket.emit('stop-typing'), 1000);
+    });
+
+    socket.on('display-typing', (user) => {
+      document.getElementById('typing-indicator').innerText = `${user} is typing...`;
+    });
+    socket.on('hide-typing', () => {
+      document.getElementById('typing-indicator').innerText = '';
+    });
+
+    socket.on('chat message', (msg) => {
+      addMessageToUI(msg);
+      scrollToBottom();
+    });
+
+    socket.on('load-history', (history) => {
+      messages.innerHTML = '';
+      history.forEach(addMessageToUI);
+      scrollToBottom();
+    });
+
+    function scrollToBottom() {
+      setTimeout(() => {
+        messages.scrollTop = messages.scrollHeight;
+      }, 50);
+    }
+
+    function addMessageToUI(msg) {
+      const li = document.createElement('li');
+      li.className = `msg-container ${msg.username === myName ? 'my-msg' : 'other-msg'}`;
+      li.id = msg._id;
+      
+      li.oncontextmenu = (e) => showMenu(e, msg._id, msg.username === myName);
+      let pressTimer;
+      li.ontouchstart = (e) => { pressTimer = setTimeout(() => showMenu(e, msg._id, msg.username === myName), 500); };
+      li.ontouchend = () => clearTimeout(pressTimer);
+
+      let content = "";
+      if(msg.username !== myName) content += `<span class="username-label">${msg.username}</span>`;
+      
+      if (msg.type === 'text') {
+        content += `<span class="msg-text">${msg.text}</span>`;
+      } else if (msg.type === 'image') {
+        content += `<img src="${msg.text}" class="msg-img" />`;
+      } else if (msg.type === 'audio') {
+        content += `<audio controls src="${msg.text}"></audio>`;
+      }
+
+      if(msg.isEdited) content += `<span class="edited-label">(edited)</span>`;
+
+      li.innerHTML = content;
+      
+      const reactionDiv = document.createElement('div');
+      reactionDiv.className = 'reaction-bar';
+      reactionDiv.id = `react-${msg._id}`;
+      li.appendChild(reactionDiv);
+      updateReactionsUI(msg._id, msg.reactions);
+
+      messages.appendChild(li);
+    }
+
+    function sendImage() {
+      const file = document.getElementById('img-upload').files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'image' });
+      reader.readAsDataURL(file);
+    }
+
+    let mediaRecorder;
+    let audioChunks = [];
+    const micBtn = document.getElementById('mic-btn');
+    let isRecording = false;
+
+    micBtn.onclick = async () => {
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.classList.add('recording-anim');
+          
+          audioChunks = [];
+          mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          
+          mediaRecorder.onstop = () => {
+             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+             const reader = new FileReader();
+             reader.readAsDataURL(audioBlob);
+             reader.onloadend = () => {
+               socket.emit('chat message', { text: reader.result, type: 'audio' });
+             };
+          };
+        } catch(err) {
+          alert("Microphone access denied! Check settings.");
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        micBtn.classList.remove('recording-anim');
+      }
+    };
+
+    socket.on('message-unsent', (id) => {
+      const el = document.getElementById(id);
+      if(el) el.remove();
+    });
+
+    socket.on('message-edited', ({ messageId, newText }) => {
+      const el = document.getElementById(messageId);
+      if(el) {
+        const textSpan = el.querySelector('.msg-text');
+        if(textSpan) textSpan.innerText = newText;
+        if(!el.querySelector('.edited-label')) el.innerHTML += `<span class="edited-label">(edited)</span>`;
+      }
+    });
+
+    socket.on('update-reaction', ({ messageId, reactions }) => updateReactionsUI(messageId, reactions));
+
+    function updateReactionsUI(msgId, reactions) {
+      const el = document.getElementById(`react-${msgId}`);
+      if (!el) return;
+      const vals = reactions instanceof Map ? Array.from(reactions.values()) : Object.values(reactions);
+      if (vals.length > 0) {
+        el.style.display = 'block';
+        el.innerText = vals.join('');
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    const menu = document.getElementById('context-menu');
+    const overlay = document.getElementById('menu-overlay');
+
+    function showMenu(e, msgId, isMine) {
+      e.preventDefault();
+      selectedMsgId = msgId;
+      selectedMsgIsMine = isMine;
+      
+      document.getElementById('btn-edit').style.display = isMine ? 'flex' : 'none';
+      document.getElementById('btn-unsend').style.display = isMine ? 'flex' : 'none';
+
+      let x = e.clientX || e.touches[0].clientX;
+      let y = e.clientY || e.touches[0].clientY;
+      if (x + 220 > window.innerWidth) x = window.innerWidth - 230;
+
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      menu.style.display = 'flex';
+      overlay.style.display = 'block';
+    }
+
+    function closeMenu() {
+      menu.style.display = 'none';
+      overlay.style.display = 'none';
+    }
+
+    function react(emoji) {
+      if(selectedMsgId) socket.emit('react', { messageId: selectedMsgId, reaction: emoji });
+      closeMenu();
+    }
+    function unsend() {
+      if(selectedMsgId && selectedMsgIsMine) socket.emit('unsend-message', selectedMsgId);
+      closeMenu();
+    }
+    function startEdit() {
+      if(selectedMsgId && selectedMsgIsMine) {
+        const newText = prompt("Edit message:");
+        if(newText) socket.emit('edit-message', { messageId: selectedMsgId, newText });
+      }
+      closeMenu();
+    }
+  </script>
+</body>
+</html>
