@@ -58,6 +58,22 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('auth-fail');
     }
+    // --- VIDEO CALL SIGNALING (Add this at the bottom of io.on) ---
+  socket.on("call-user", (data) => {
+    socket.broadcast.emit("call-made", { offer: data.offer, socket: socket.id });
+  });
+
+  socket.on("make-answer", (data) => {
+    socket.to(data.to).emit("answer-made", { socket: socket.id, answer: data.answer });
+  });
+
+  socket.on("ice-candidate", (data) => {
+    socket.to(data.to).emit("ice-candidate", { candidate: data.candidate });
+  });
+  
+  socket.on("hang-up", () => {
+    socket.broadcast.emit("call-ended");
+  });
   });
 
   // 2. DISCONNECT
@@ -131,4 +147,5 @@ io.on('connection', (socket) => {
 server.listen(3000, () => {
   console.log('Server running on 3000');
 });
+
 
