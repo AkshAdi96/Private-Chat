@@ -124,25 +124,32 @@
     .emoji-opt { font-size: 24px; cursor: pointer; transition: transform 0.1s; }
     .emoji-opt:active { transform: scale(1.4); }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
-
-    /* --- VIDEO CALL STYLES --- */
+    
+    /* --- UPDATED VIDEO STYLES (Paste inside <style>) --- */
     
     #video-container { 
       position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-      background: #111; z-index: 5000; display: none; flex-direction: column;
+      background: #000; z-index: 5000; display: none; flex-direction: column;
     }
     
+    /* 1. REMOTE VIDEO (Hers) */
+    /* object-fit: contain -> Ensures the whole video is seen, no cropping */
     #remote-video { 
-      width: 100%; height: 100%; object-fit: cover; 
+      width: 100%; 
+      height: 100%; 
+      object-fit: contain; 
+      background: #000; 
     }
     
+    /* 2. LOCAL VIDEO (Yours) */
+    /* Kept 'cover' so your small box looks neat, but added the Flip */
     #local-video { 
       position: absolute; bottom: 100px; right: 20px; 
-      width: 100px; height: 150px; background: #000; 
-      border: 2px solid #333; border-radius: 10px; object-fit: cover; z-index: 5001;
-      
-      /* THIS FLIPS YOUR CAMERA: */
-      transform: scaleX(-1); 
+      width: 100px; height: 150px; background: #222; 
+      border: 2px solid #333; border-radius: 10px; 
+      object-fit: cover; 
+      z-index: 5001;
+      transform: scaleX(-1); /* Flips your camera mirror-style */
     }
 
   </style>
@@ -637,9 +644,16 @@
     socket.on("call-ended", () => {
        endCallUI();
     });
-
-    // --- UPDATED BUTTON LOGIC (Paste this at the bottom of your script) ---
     
+   // --- FINAL VIDEO CALL FUNCTIONS ---
+
+    // 1. The Main Hangup Function (Attached to the red button)
+    function endCall() {
+      socket.emit("hang-up"); // Tell the other person
+      endCallUI();            // Close my screen
+    }
+    
+    // 2. The Visual Cleanup (Resets everything)
     function endCallUI() {
       if(peerConnection) peerConnection.close();
       if(localStream) {
@@ -653,20 +667,21 @@
       
       const btnCam = document.getElementById("btn-cam");
       const iconCam = document.getElementById("icon-cam");
-      if(btnCam) { // Check if exists to avoid errors
+      if(btnCam) {
           btnCam.style.background = "#444";
           iconCam.className = "fas fa-video";
       }
       
-      location.reload(); 
+      location.reload(); // Refresh page to ensure clean state
     }
     
+    // 3. Mute Logic
     function toggleMute() {
+       if(!localStream) return;
        const audioTrack = localStream.getAudioTracks()[0];
        if(audioTrack) {
          audioTrack.enabled = !audioTrack.enabled;
          
-         // Visual Feedback (Red = Muted)
          const btn = document.getElementById("btn-mute");
          const icon = document.getElementById("icon-mute");
          
@@ -680,12 +695,13 @@
        }
     }
 
+    // 4. Camera Logic
     function toggleCam() {
+       if(!localStream) return;
        const videoTrack = localStream.getVideoTracks()[0];
        if(videoTrack) {
          videoTrack.enabled = !videoTrack.enabled;
          
-         // Visual Feedback (Red = Camera Off)
          const btn = document.getElementById("btn-cam");
          const icon = document.getElementById("icon-cam");
          
@@ -701,6 +717,7 @@
   </script>
 </body>
 </html>
+
 
 
 
