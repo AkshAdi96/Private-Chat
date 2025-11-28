@@ -19,7 +19,6 @@ const messageSchema = new mongoose.Schema({
   text: String,
   fileName: String, 
   type: { type: String, enum: ['text', 'image', 'document', 'audio'], default: 'text' },
-  // TTL INDEX: Messages with a date here delete themselves
   expiresAt: { type: Date, index: { expires: '0s' } }, 
   timestamp: { type: Date, default: Date.now }
 });
@@ -36,11 +35,11 @@ io.on('connection', (socket) => {
       currentUser = username;
       socket.emit('auth-success');
       
-      // DEFAULT: Join Normal Room
+      // Default: Join Normal Room
       socket.join('room-normal');
       
-      // Load Normal History (Messages where expiresAt DOES NOT exist)
-      const history = await Message.find({ $or: [ { expiresAt: { $exists: false } }, { expiresAt: null } ] })
+      // Load Normal History (Messages with NO expiry)
+      const history = await Message.find({ expiresAt: { $exists: false } })
                                    .sort({ timestamp: 1 }).limit(50);
       socket.emit('load-history', history);
     } else {
@@ -48,20 +47,20 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- NEW: SWITCH MODES ---
+  // --- THIS IS THE MISSING LINK FOR THE TOGGLE ---
   socket.on('switch-mode', async (mode) => {
     if (mode === 'temp') {
         socket.leave('room-normal');
         socket.join('room-temp');
-        // Load Temp History (Messages where expiresAt EXISTS)
-        const history = await Message.find({ expiresAt: { $exists: true, $ne: null } })
+        // Load Temp History (Messages WITH expiry)
+        const history = await Message.find({ expiresAt: { $exists: true } })
                                      .sort({ timestamp: 1 }).limit(50);
         socket.emit('load-history', history);
     } else {
         socket.leave('room-temp');
         socket.join('room-normal');
         // Load Normal History
-        const history = await Message.find({ $or: [ { expiresAt: { $exists: false } }, { expiresAt: null } ] })
+        const history = await Message.find({ expiresAt: { $exists: false } })
                                      .sort({ timestamp: 1 }).limit(50);
         socket.emit('load-history', history);
     }
@@ -77,39 +76,25 @@ io.on('connection', (socket) => {
       type: data.type || 'text'
     };
 
-    // If Temp Mode: Set Expiry and Room
     let room = 'room-normal';
+    
+    // If Temp Mode is active, add expiry and change room
     if (data.isTemp) {
-      msgData.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Hours
+      msgData.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); 
       room = 'room-temp';
     }
 
     const newMsg = new Message(msgData);
     await newMsg.save();
     
-    // SEND ONLY TO THE SPECIFIC ROOM
+    // Broadcast ONLY to the specific room
     io.to(room).emit('chat message', newMsg);
   });
 
-  // Standard Events
   socket.on('typing', () => { if (currentUser) socket.broadcast.emit('display-typing', currentUser); });
   socket.on('stop-typing', () => { socket.broadcast.emit('hide-typing'); });
-  
-  socket.on('unsend-message', async (id) => { 
-    await Message.findByIdAndDelete(id); 
-    io.emit('message-unsent', id); 
-  });
-  
-  socket.on('edit-message', async ({ messageId, newText }) => { 
-    await Message.findByIdAndUpdate(messageId, { text: newText }); 
-    io.emit('message-edited', { messageId, newText }); 
-  });
-
-  // Video Signaling (Broadcasts globally to ensure connection across modes)
-  socket.on("call-user", (data) => socket.broadcast.emit("call-made", { offer: data.offer, socket: socket.id }));
-  socket.on("make-answer", (data) => socket.to(data.to).emit("answer-made", { socket: socket.id, answer: data.answer }));
-  socket.on("ice-candidate", (data) => socket.to(data.to).emit("ice-candidate", { candidate: data.candidate }));
-  socket.on("hang-up", () => socket.broadcast.emit("call-ended"));
+  socket.on('unsend-message', async (id) => { await Message.findByIdAndDelete(id); io.emit('message-unsent', id); });
+  socket.on('edit-message', async ({ messageId, newText }) => { await Message.findByIdAndUpdate(messageId, { text: newText }); io.emit('message-edited', { messageId, newText }); });
 });
 
 server.listen(3000, () => { console.log('Server running on 3000'); });
