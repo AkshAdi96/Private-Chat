@@ -51,25 +51,22 @@
     .model-selector { font-size: 16px; font-weight: 600; color: #d1d5db; display: flex; align-items: center; gap: 5px; cursor: pointer;}
     .new-chat-icon { color: var(--text-color); font-size: 18px; cursor: pointer; }
 
-    /* --- 3. MESSAGES (CENTERED COLUMN LAYOUT) --- */
+    /* --- 3. MESSAGES --- */
     #messages { 
       list-style: none; padding: 20px; margin: 0; 
       flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
-      align-items: center; /* This centers the message rows */
+      align-items: center;
     }
     
     .msg-row { 
       display: flex; width: 100%;
-      max-width: 800px; /* Limits width so it doesn't touch edges on PC */
+      max-width: 800px;
     }
     
-    /* User (Left) */
     .row-user { justify-content: flex-start; }
     .row-user .msg-bubble { background: var(--bubble-user); border-top-left-radius: 2px; color: white; cursor: pointer; }
-    .row-user .msg-bubble:active { filter: brightness(0.9); }
     .row-user .avatar { display: none; } 
 
-    /* AI (Right) */
     .row-ai { justify-content: flex-end; }
     .row-ai .msg-bubble { background: var(--bubble-ai); border-top-right-radius: 2px; }
     .row-ai .avatar { margin-left: 10px; background: var(--accent); order: 2; } 
@@ -85,7 +82,17 @@
     }
 
     .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
-    .doc-link { display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; margin-top: 5px; color: inherit; text-decoration: none; }
+    
+    /* Document Link Styling */
+    .doc-container {
+      display: inline-flex; align-items: center; gap: 10px; 
+      background: rgba(0,0,0,0.2); padding: 10px 15px; 
+      border-radius: 8px; margin-top: 5px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1); transition: 0.2s;
+    }
+    .doc-container:hover { background: rgba(0,0,0,0.4); }
+    .doc-icon { font-size: 20px; color: inherit; }
+    .doc-name { font-size: 14px; text-decoration: underline; word-break: break-all;}
 
     /* --- 4. INPUT BAR --- */
     #form-container { 
@@ -94,7 +101,7 @@
     }
     
     .input-wrapper {
-      width: 100%; max-width: 800px; /* Matches message width */
+      width: 100%; max-width: 800px;
       background: var(--input-bg); border-radius: 26px; padding: 5px 10px;
       display: flex; align-items: center; gap: 5px;
       border: 1px solid #424242; transition: 0.2s;
@@ -238,6 +245,40 @@
 
     function scrollToBottom() { setTimeout(() => { messages.scrollTop = messages.scrollHeight; }, 50); }
 
+    // --- SAFE FILE DOWNLOAD FUNCTION ---
+    function downloadBase64File(base64Data, fileName) {
+        try {
+            // Split metadata from data
+            const arr = base64Data.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            
+            while(n--){
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            
+            const blob = new Blob([u8arr], {type: mime});
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        } catch(e) {
+            console.error("Download failed", e);
+            alert("Error downloading file.");
+        }
+    }
+
     function addMessageToUI(msg) {
       const li = document.createElement('li');
       const isAI = (msg.username === "ChatGPT");
@@ -247,15 +288,42 @@
       
       const avatarHTML = isAI ? `<div class="avatar"><i class="fas fa-robot"></i></div>` : ``;
 
-      let content = "";
-      if (msg.type === 'text') content = msg.text;
-      else if (msg.type === 'image') content = `<img src="${msg.text}" class="msg-img">`;
-      else if (msg.type === 'document') content = `<a class="doc-link" href="${msg.text}" download="${msg.fileName}"><i class="fas fa-file"></i> ${msg.fileName}</a>`;
+      let contentHTML = "";
+      
+      if (msg.type === 'text') {
+          contentHTML = `<span class="bubble-text">${msg.text}</span>`;
+      } 
+      else if (msg.type === 'image') {
+          contentHTML = `<img src="${msg.text}" class="msg-img">`;
+      } 
+      else if (msg.type === 'document') {
+          // --- FIXED DOCUMENT LOGIC ---
+          // We assign the click handler via JS, NOT HTML string to avoid freezing
+          const docId = "doc-" + msg._id;
+          contentHTML = `
+            <div id="${docId}" class="doc-container">
+               <i class="fas fa-file-alt doc-icon"></i>
+               <span class="doc-name">${msg.fileName}</span>
+               <i class="fas fa-download" style="font-size:12px; margin-left:5px;"></i>
+            </div>
+          `;
+          
+          // Attach safe download listener after render
+          setTimeout(() => {
+             const el = document.getElementById(docId);
+             if(el) {
+                 el.onclick = (e) => {
+                     e.stopPropagation(); // Stop menu opening
+                     downloadBase64File(msg.text, msg.fileName);
+                 }
+             }
+          }, 0);
+      }
 
       li.innerHTML = `
         ${avatarHTML}
         <div class="msg-bubble">
-          <span class="bubble-text">${content}</span>
+          ${contentHTML}
         </div>
       `;
 
@@ -282,9 +350,13 @@
     function sendDoc() {
       const file = document.getElementById('doc-upload').files[0];
       if(!file) return;
-      if(file.size > 10 * 1024 * 1024) return alert("File too large");
+      // Increased Limit slightly to 12MB, but warned user
+      if(file.size > 12 * 1024 * 1024) return alert("File too large (Max 12MB)");
+      
       const reader = new FileReader();
-      reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'document', fileName: file.name });
+      reader.onload = (e) => {
+          socket.emit('chat message', { text: e.target.result, type: 'document', fileName: file.name });
+      };
       reader.readAsDataURL(file);
     }
 
