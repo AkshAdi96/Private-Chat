@@ -58,10 +58,7 @@
       align-items: center;
     }
     
-    .msg-row { 
-      display: flex; width: 100%;
-      max-width: 800px;
-    }
+    .msg-row { display: flex; width: 100%; max-width: 800px; }
     
     .row-user { justify-content: flex-start; }
     .row-user .msg-bubble { background: var(--bubble-user); border-top-left-radius: 2px; color: white; cursor: pointer; }
@@ -81,8 +78,8 @@
       display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; color: white;
     }
 
-    /* IMAGE STYLES + DOWNLOAD BTN */
-    .img-wrapper { position: relative; display: inline-block; }
+    /* IMAGE STYLES */
+    .img-wrapper { position: relative; display: inline-block; cursor: zoom-in; } /* Cursor indicates clickable */
     .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
     .dl-btn-img {
       position: absolute; bottom: 8px; right: 8px;
@@ -93,7 +90,7 @@
       border: 1px solid rgba(255,255,255,0.3);
     }
     
-    /* DOCUMENT STYLES + DOWNLOAD BTN */
+    /* DOCUMENT STYLES */
     .doc-container {
       display: inline-flex; align-items: center; gap: 10px; 
       background: rgba(0,0,0,0.2); padding: 10px 15px; 
@@ -110,7 +107,7 @@
     }
     .dl-btn-doc:active { background: rgba(255,255,255,0.3); }
 
-    /* --- 4. INPUT BAR (FIXED OVERLAP) --- */
+    /* --- 4. INPUT BAR --- */
     #form-container { 
       padding: 15px; background: var(--bg-color); 
       display: flex; justify-content: center; width: 100%;
@@ -121,8 +118,6 @@
       background: var(--input-bg); border-radius: 26px; padding: 5px 10px;
       display: flex; align-items: center; gap: 8px;
       border: 1px solid #424242; transition: 0.2s;
-      
-      /* THIS FIXES THE OVERLAP: */
       flex-wrap: nowrap; 
     }
     
@@ -130,21 +125,21 @@
       background: transparent; color: var(--text-dim); border: none;
       padding: 10px; font-size: 18px; cursor: pointer; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; /* Prevents buttons from squishing */
+      flex-shrink: 0;
     }
     .icon-btn:hover { color: white; background: #424242; }
 
     #input { 
       flex-grow: 1; background: transparent; border: none; 
       color: white; font-size: 16px; outline: none; padding: 10px 5px;
-      min-width: 0; /* Critical for flexbox text overflow */
+      min-width: 0;
     }
 
     .send-btn { 
       background: transparent; color: var(--text-dim); border: none;
       padding: 8px; font-size: 16px; cursor: pointer; border-radius: 8px;
       display: flex; align-items: center; justify-content: center; transition: 0.2s;
-      flex-shrink: 0; /* Prevents send button from squishing */
+      flex-shrink: 0;
     }
     .send-btn:hover { background: #424242; }
     .send-btn.active { background: var(--accent); color: white; }
@@ -154,6 +149,26 @@
     .ctx-item { padding: 12px 15px; cursor: pointer; color: #ececf1; font-size: 14px; border-bottom: 1px solid #3e3e3e; display: flex; align-items: center; gap: 10px; }
     .ctx-item:hover { background: #3e3e3e; }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
+
+    /* --- IMAGE PREVIEW MODAL (LIGHTBOX) --- */
+    #img-modal {
+      display: none; position: fixed; z-index: 3000; 
+      left: 0; top: 0; width: 100%; height: 100%; 
+      background-color: rgba(0,0,0,0.95); 
+      justify-content: center; align-items: center;
+      flex-direction: column;
+    }
+    #img-modal-content {
+      max-width: 95%; max-height: 85%; 
+      border-radius: 5px; object-fit: contain;
+      box-shadow: 0 0 20px rgba(255,255,255,0.1);
+    }
+    #img-modal-close {
+      position: absolute; top: 20px; right: 30px; 
+      color: #f1f1f1; font-size: 40px; font-weight: bold; 
+      cursor: pointer; user-select: none;
+    }
+    #img-modal-close:hover { color: var(--accent); }
 
   </style>
 </head>
@@ -185,15 +200,11 @@
     
     <div id="form-container">
       <div class="input-wrapper" id="input-box">
-        
         <label for="doc-upload" class="icon-btn"><i class="fas fa-paperclip"></i></label>
         <input type="file" id="doc-upload" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="sendDoc()" />
-
         <label for="img-upload" class="icon-btn"><i class="far fa-image"></i></label>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="sendImage()" />
-
         <input id="input" autocomplete="off" placeholder="Ask anything" />
-        
         <button id="send-btn" class="send-btn"><i class="fas fa-arrow-up"></i></button>
       </div>
     </div>
@@ -203,6 +214,11 @@
   <div id="context-menu">
     <div class="ctx-item" onclick="startEdit()"><i class="fas fa-pen"></i> Edit</div>
     <div class="ctx-item" onclick="unsend()" style="color:#ef4444;"><i class="fas fa-trash"></i> Delete</div>
+  </div>
+
+  <div id="img-modal" onclick="closeImgModal()">
+    <span id="img-modal-close">&times;</span>
+    <img id="img-modal-content">
   </div>
 
   <script>
@@ -287,6 +303,18 @@
         } catch(e) { console.error(e); alert("Download failed."); }
     }
 
+    // --- IMAGE PREVIEW LOGIC ---
+    function openImgModal(src) {
+        const modal = document.getElementById("img-modal");
+        const modalImg = document.getElementById("img-modal-content");
+        modal.style.display = "flex";
+        modalImg.src = src;
+    }
+    
+    function closeImgModal() {
+        document.getElementById("img-modal").style.display = "none";
+    }
+
     function addMessageToUI(msg) {
       const li = document.createElement('li');
       const isAI = (msg.username === "ChatGPT");
@@ -302,15 +330,19 @@
           contentHTML = `<span class="bubble-text">${msg.text}</span>`;
       } 
       else if (msg.type === 'image') {
-          // --- IMAGE WITH DOWNLOAD BTN ---
+          // --- IMAGE WITH PREVIEW CLICK & DOWNLOAD BTN ---
           const btnId = "dl-img-" + msg._id;
+          
+          // Note the onclick for the image wrapper triggers the modal
           contentHTML = `
-            <div class="img-wrapper">
+            <div class="img-wrapper" onclick="openImgModal('${msg.text}'); event.stopPropagation();">
                <img src="${msg.text}" class="msg-img">
                <div id="${btnId}" class="dl-btn-img"><i class="fas fa-download"></i></div>
             </div>
           `;
+          
           setTimeout(() => {
+             // Separate listener for download so it doesn't trigger modal
              document.getElementById(btnId).onclick = (e) => {
                  e.stopPropagation();
                  downloadBase64File(msg.text, "image_" + Date.now() + ".png");
@@ -318,7 +350,6 @@
           }, 0);
       } 
       else if (msg.type === 'document') {
-          // --- DOCUMENT WITH DOWNLOAD BTN ---
           const btnId = "dl-doc-" + msg._id;
           contentHTML = `
             <div class="doc-container">
@@ -343,6 +374,7 @@
       `;
 
       li.onclick = (e) => {
+        // Prevent menu if clicking inside image modal area (handled by propagation stop above)
         if (msg.username === myName) {
             e.stopPropagation(); 
             selectedMsgId = msg._id;
