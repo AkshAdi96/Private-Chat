@@ -17,7 +17,7 @@
       --accent: #10a37f;
       --bubble-ai: #3E3F4B; 
       --bubble-user: #10a37f;
-      --temp-mode-color: #ab68ff; /* Purple for temp mode */
+      --temp-accent: #ab68ff; /* Purple for temp mode */
     }
     
     * { box-sizing: border-box; }
@@ -36,10 +36,8 @@
     .login-container { width: 320px; padding: 40px 0; }
     .gpt-logo-big { font-size: 45px; margin-bottom: 25px; color: var(--text-color); }
     h2 { font-weight: 600; margin-bottom: 25px; font-size: 32px; }
-    
     .input-group { margin-bottom: 15px; text-align: left; }
     .input-label { display: block; font-size: 14px; color: var(--text-dim); margin-bottom: 5px; }
-    
     input.auth { width: 100%; padding: 15px; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; outline: none; color: #000; }
     button.auth { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
 
@@ -47,54 +45,30 @@
     #header { 
       padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); 
       background: var(--bg-color); display: flex; justify-content: space-between; 
-      align-items: center; height: 50px; flex-shrink: 0; position: relative;
+      align-items: center; height: 50px; flex-shrink: 0;
     }
-    .header-left { flex: 1; }
-    .hamburger { color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 5px;}
-
-    .model-selector { 
-      flex: 2; display: flex; justify-content: center; align-items: center; 
-      gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 8px; user-select: none;
-    }
-    .model-selector:hover { background: #2f2f2f; }
+    .model-selector { font-size: 16px; font-weight: 600; color: #d1d5db; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.3s;}
+    .model-selector:hover { opacity: 0.8; }
     
-    .header-logo { width: 18px; height: 18px; opacity: 0.7; }
-    .model-name { font-size: 16px; font-weight: 600; color: #d1d5db; transition: color 0.3s; }
-    .chevron { font-size: 10px; color: #b4b4b4; margin-top: 2px; transition: transform 0.2s; }
-    
-    .header-right { flex: 1; display: flex; justify-content: flex-end; }
-    .new-chat-icon { color: var(--text-color); font-size: 18px; cursor: pointer; padding: 5px;}
+    .new-chat-icon { color: var(--text-color); font-size: 18px; cursor: pointer; }
 
-    /* DROPDOWN MENU */
+    /* DROPDOWN */
     #model-dropdown {
       position: absolute; top: 55px; left: 50%; transform: translateX(-50%);
       width: 300px; background: #2f2f2f; border: 1px solid #444; border-radius: 12px;
       display: none; flex-direction: column; z-index: 3000; padding: 6px;
       box-shadow: 0 10px 20px rgba(0,0,0,0.5);
     }
-    
-    .dropdown-item {
-      padding: 12px 15px; display: flex; align-items: center; gap: 12px;
-      cursor: pointer; border-radius: 8px; transition: 0.2s;
-    }
+    .dropdown-item { padding: 12px 15px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-radius: 8px; transition: 0.2s; }
     .dropdown-item:hover { background: #424242; }
     .dd-icon { font-size: 20px; width: 24px; text-align: center; }
     .dd-text { display: flex; flex-direction: column; }
     .dd-title { font-size: 14px; font-weight: 500; color: #ececec; }
     .dd-sub { font-size: 12px; color: #b4b4b4; }
     .dd-check { margin-left: auto; color: var(--accent); font-size: 14px; }
-    
-    /* Toggle Switch Style */
-    .fa-toggle-off { color: #666; font-size: 20px; }
-    .fa-toggle-on { color: var(--temp-mode-color); font-size: 20px; }
 
     /* --- 3. MESSAGES --- */
-    #messages { 
-      list-style: none; padding: 20px; margin: 0; 
-      flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
-      align-items: center;
-    }
-    
+    #messages { list-style: none; padding: 20px; margin: 0; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; align-items: center; }
     .msg-row { display: flex; width: 100%; max-width: 800px; }
     
     .row-user { justify-content: flex-start; }
@@ -105,15 +79,8 @@
     .row-ai .msg-bubble { background: var(--bubble-ai); border-top-right-radius: 2px; }
     .row-ai .avatar { margin-left: 10px; background: var(--accent); order: 2; } 
 
-    .msg-bubble {
-      max-width: 85%; padding: 12px 16px; border-radius: 18px;
-      font-size: 16px; line-height: 1.5; position: relative; word-wrap: break-word; user-select: none;
-    }
-
-    .avatar { 
-      width: 30px; height: 30px; border-radius: 50%; 
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; color: white;
-    }
+    .msg-bubble { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 16px; line-height: 1.5; position: relative; word-wrap: break-word; user-select: none; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; color: white; }
 
     .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
     .img-wrapper { position: relative; display: inline-block; cursor: zoom-in; }
@@ -123,45 +90,22 @@
     .doc-icon { font-size: 20px; color: inherit; flex-shrink: 0; }
     .doc-name { font-size: 14px; text-decoration: none; word-break: break-all; flex-grow: 1; }
     .dl-btn-doc { background: rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-left: 5px; }
-    .dl-btn-doc:active { background: rgba(255,255,255,0.3); }
 
     /* --- 4. INPUT BAR --- */
-    #form-container { 
-      padding: 15px; background: var(--bg-color); 
-      display: flex; justify-content: center; width: 100%;
-    }
-    
-    .input-wrapper {
-      width: 100%; max-width: 800px;
-      background: var(--input-bg); border-radius: 26px; padding: 5px 10px;
-      display: flex; align-items: center; gap: 8px;
-      border: 1px solid #424242; transition: 0.2s; flex-wrap: nowrap; 
-    }
-    
-    .icon-btn {
-      background: transparent; color: var(--text-dim); border: none;
-      padding: 10px; font-size: 18px; cursor: pointer; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
+    #form-container { padding: 15px; background: var(--bg-color); display: flex; justify-content: center; width: 100%; }
+    .input-wrapper { width: 100%; max-width: 800px; background: var(--input-bg); border-radius: 26px; padding: 5px 10px; display: flex; align-items: center; gap: 8px; border: 1px solid #424242; transition: 0.2s; flex-wrap: nowrap; }
+    .icon-btn { background: transparent; color: var(--text-dim); border: none; padding: 10px; font-size: 18px; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .icon-btn:hover { color: white; background: #424242; }
-
     #input { flex-grow: 1; background: transparent; border: none; color: white; font-size: 16px; outline: none; padding: 10px 5px; min-width: 0; }
-
-    .send-btn { 
-      background: transparent; color: var(--text-dim); border: none;
-      padding: 8px; font-size: 16px; cursor: pointer; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0;
-    }
+    .send-btn { background: transparent; color: var(--text-dim); border: none; padding: 8px; font-size: 16px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
     .send-btn:hover { background: #424242; }
     .send-btn.active { background: var(--accent); color: white; }
 
-    /* --- MENU --- */
+    /* --- MENU & MODALS --- */
     #context-menu { position: fixed; background: #2f2f2f; border: 1px solid #444; border-radius: 8px; display: none; flex-direction: column; width: 120px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
     .ctx-item { padding: 12px 15px; cursor: pointer; color: #ececf1; font-size: 14px; border-bottom: 1px solid #3e3e3e; display: flex; align-items: center; gap: 10px; }
     .ctx-item:hover { background: #3e3e3e; }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
-
-    /* --- IMAGE PREVIEW --- */
     #img-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); justify-content: center; align-items: center; }
     #img-modal-content { max-width: 95%; max-height: 85%; border-radius: 5px; object-fit: contain; }
     #img-modal-close { position: absolute; top: 20px; right: 30px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; }
@@ -185,7 +129,9 @@
       <div class="header-left"><i class="fas fa-bars hamburger"></i></div>
       
       <div class="model-selector" onclick="toggleDropdown()">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" class="header-logo" style="filter: invert(1);">
+        <img id="header-logo" src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" style="width:18px; height:18px; filter: invert(1);">
+        <i id="temp-icon" class="fas fa-clock-rotate-left" style="display:none; color:#ab68ff;"></i>
+        
         <span class="model-name" id="header-title">ChatGPT 4.0</span>
         <i class="fas fa-chevron-down chevron" id="dd-chevron"></i>
       </div>
@@ -194,24 +140,17 @@
     </div>
 
     <div id="model-dropdown">
-      <div class="dropdown-item">
+      <div class="dropdown-item" onclick="setMode('normal')">
         <div class="dd-icon"><i class="fas fa-sparkles" style="color:#ab68ff;"></i></div>
-        <div class="dd-text">
-          <span class="dd-title">ChatGPT 4.0</span>
-          <span class="dd-sub">Our smartest model</span>
-        </div>
+        <div class="dd-text"><span class="dd-title">ChatGPT 4.0</span><span class="dd-sub">Our smartest model</span></div>
       </div>
       
       <div style="border-top:1px solid #444; margin: 5px 0;"></div>
 
-      <div class="dropdown-item" onclick="toggleTempMode()">
+      <div class="dropdown-item" onclick="setMode('temp')">
         <div class="dd-icon"><i class="fas fa-clock-rotate-left"></i></div>
-        <div class="dd-text">
-          <span class="dd-title">Temporary Chat</span>
-        </div>
-        <div class="dd-check">
-            <i class="fas fa-toggle-off" id="temp-toggle-icon"></i>
-        </div>
+        <div class="dd-text"><span class="dd-title">Temporary Chat</span></div>
+        <div class="dd-check"><i class="fas fa-toggle-off" id="temp-toggle-icon"></i></div>
       </div>
     </div>
     
@@ -234,7 +173,6 @@
     <div class="ctx-item" onclick="startEdit()"><i class="fas fa-pen"></i> Edit</div>
     <div class="ctx-item" onclick="unsend()" style="color:#ef4444;"><i class="fas fa-trash"></i> Delete</div>
   </div>
-
   <div id="img-modal" onclick="closeImgModal()"><span id="img-modal-close">&times;</span><img id="img-modal-content"></div>
 
   <script>
@@ -263,7 +201,7 @@
 
     function panic() { window.location.href = "https://www.google.com"; }
 
-    // --- DROPDOWN & TEMP CHAT ---
+    // --- DROPDOWN & MODE SWITCH ---
     function toggleDropdown() {
       const dd = document.getElementById('model-dropdown');
       const chev = document.getElementById('dd-chevron');
@@ -281,20 +219,46 @@
       document.getElementById('dd-chevron').style.transform = 'rotate(0deg)';
     }
 
-    function toggleTempMode() {
-        isTempMode = !isTempMode;
-        const icon = document.getElementById('temp-toggle-icon');
-        const title = document.getElementById('header-title');
-        
-        if (isTempMode) {
-            icon.className = "fas fa-toggle-on";
-            title.style.color = "#ab68ff"; // Purple to indicate temp mode
-            alert("Temporary Chat Enabled. Messages expire in 24 hours.");
+    function setMode(mode) {
+        // Toggle Logic
+        if (mode === 'temp') {
+            if (isTempMode) return; // Already on temp
+            isTempMode = true;
+            updateHeaderForTemp(true);
+            socket.emit('switch-mode', 'temp'); // Tell server to swap room
         } else {
-            icon.className = "fas fa-toggle-off";
-            title.style.color = "#d1d5db"; // Back to grey
+            if (!isTempMode) return; // Already on normal
+            isTempMode = false;
+            updateHeaderForTemp(false);
+            socket.emit('switch-mode', 'normal'); // Tell server to swap room
         }
-        // Don't close dropdown immediately so they see the change
+        
+        // Clear messages visibly to show the "swap"
+        document.getElementById('messages').innerHTML = '';
+        closeDropdown();
+    }
+
+    function updateHeaderForTemp(isTemp) {
+        const title = document.getElementById('header-title');
+        const logo = document.getElementById('header-logo');
+        const tempIcon = document.getElementById('temp-icon');
+        const toggleIcon = document.getElementById('temp-toggle-icon');
+
+        if (isTemp) {
+            title.innerText = "Temporary Chat";
+            title.style.color = "#ab68ff"; // Purple
+            logo.style.display = "none";
+            tempIcon.style.display = "block";
+            toggleIcon.className = "fas fa-toggle-on";
+            toggleIcon.style.color = "#ab68ff";
+        } else {
+            title.innerText = "ChatGPT 4.0";
+            title.style.color = "#d1d5db"; // Grey
+            logo.style.display = "block";
+            tempIcon.style.display = "none";
+            toggleIcon.className = "fas fa-toggle-off";
+            toggleIcon.style.color = "#666";
+        }
     }
 
     // --- CHAT LOGIC ---
@@ -307,17 +271,22 @@
       socket.emit('typing');
     });
     input.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); sendBtn.click(); }});
-    
     sendBtn.onclick = () => { 
       if (input.value.trim()) { 
-        // Send 'isTemp' flag with message
         socket.emit('chat message', { text: input.value, type: 'text', isTemp: isTempMode }); 
         input.value = ''; sendBtn.classList.remove('active'); 
       }
     };
 
     socket.on('chat message', (msg) => { addMessageToUI(msg); scrollToBottom(); });
-    socket.on('load-history', (history) => { messages.innerHTML = ''; history.forEach(addMessageToUI); scrollToBottom(); });
+    
+    // LOAD HISTORY (Handles the swap)
+    socket.on('load-history', (history) => { 
+        messages.innerHTML = ''; // Clear old room messages
+        history.forEach(addMessageToUI); 
+        scrollToBottom(); 
+    });
+
     function scrollToBottom() { setTimeout(() => { messages.scrollTop = messages.scrollHeight; }, 50); }
 
     function downloadBase64File(base64Data, fileName) {
