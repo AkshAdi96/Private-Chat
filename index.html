@@ -17,6 +17,7 @@
       --accent: #10a37f;
       --bubble-ai: #3E3F4B; 
       --bubble-user: #10a37f;
+      --temp-mode-color: #ab68ff; /* Purple for temp mode */
     }
     
     * { box-sizing: border-box; }
@@ -46,10 +47,46 @@
     #header { 
       padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); 
       background: var(--bg-color); display: flex; justify-content: space-between; 
-      align-items: center; height: 50px; flex-shrink: 0;
+      align-items: center; height: 50px; flex-shrink: 0; position: relative;
     }
-    .model-selector { font-size: 16px; font-weight: 600; color: #d1d5db; display: flex; align-items: center; gap: 5px; cursor: pointer;}
-    .new-chat-icon { color: var(--text-color); font-size: 18px; cursor: pointer; }
+    .header-left { flex: 1; }
+    .hamburger { color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 5px;}
+
+    .model-selector { 
+      flex: 2; display: flex; justify-content: center; align-items: center; 
+      gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 8px; user-select: none;
+    }
+    .model-selector:hover { background: #2f2f2f; }
+    
+    .header-logo { width: 18px; height: 18px; opacity: 0.7; }
+    .model-name { font-size: 16px; font-weight: 600; color: #d1d5db; transition: color 0.3s; }
+    .chevron { font-size: 10px; color: #b4b4b4; margin-top: 2px; transition: transform 0.2s; }
+    
+    .header-right { flex: 1; display: flex; justify-content: flex-end; }
+    .new-chat-icon { color: var(--text-color); font-size: 18px; cursor: pointer; padding: 5px;}
+
+    /* DROPDOWN MENU */
+    #model-dropdown {
+      position: absolute; top: 55px; left: 50%; transform: translateX(-50%);
+      width: 300px; background: #2f2f2f; border: 1px solid #444; border-radius: 12px;
+      display: none; flex-direction: column; z-index: 3000; padding: 6px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+    
+    .dropdown-item {
+      padding: 12px 15px; display: flex; align-items: center; gap: 12px;
+      cursor: pointer; border-radius: 8px; transition: 0.2s;
+    }
+    .dropdown-item:hover { background: #424242; }
+    .dd-icon { font-size: 20px; width: 24px; text-align: center; }
+    .dd-text { display: flex; flex-direction: column; }
+    .dd-title { font-size: 14px; font-weight: 500; color: #ececec; }
+    .dd-sub { font-size: 12px; color: #b4b4b4; }
+    .dd-check { margin-left: auto; color: var(--accent); font-size: 14px; }
+    
+    /* Toggle Switch Style */
+    .fa-toggle-off { color: #666; font-size: 20px; }
+    .fa-toggle-on { color: var(--temp-mode-color); font-size: 20px; }
 
     /* --- 3. MESSAGES --- */
     #messages { 
@@ -78,33 +115,14 @@
       display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; color: white;
     }
 
-    /* IMAGE STYLES */
-    .img-wrapper { position: relative; display: inline-block; cursor: zoom-in; } /* Cursor indicates clickable */
     .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
-    .dl-btn-img {
-      position: absolute; bottom: 8px; right: 8px;
-      background: rgba(0,0,0,0.6); color: white;
-      width: 28px; height: 28px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 14px;
-      border: 1px solid rgba(255,255,255,0.3);
-    }
-    
-    /* DOCUMENT STYLES */
-    .doc-container {
-      display: inline-flex; align-items: center; gap: 10px; 
-      background: rgba(0,0,0,0.2); padding: 10px 15px; 
-      border-radius: 12px; margin-top: 5px; 
-      border: 1px solid rgba(255,255,255,0.1); 
-      max-width: 100%;
-    }
+    .img-wrapper { position: relative; display: inline-block; cursor: zoom-in; }
+    .dl-btn-img { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); }
+
+    .doc-container { display: inline-flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 12px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.1); max-width: 100%; }
     .doc-icon { font-size: 20px; color: inherit; flex-shrink: 0; }
     .doc-name { font-size: 14px; text-decoration: none; word-break: break-all; flex-grow: 1; }
-    .dl-btn-doc {
-      background: rgba(255,255,255,0.1); width: 30px; height: 30px;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; flex-shrink: 0; margin-left: 5px;
-    }
+    .dl-btn-doc { background: rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-left: 5px; }
     .dl-btn-doc:active { background: rgba(255,255,255,0.3); }
 
     /* --- 4. INPUT BAR --- */
@@ -117,29 +135,22 @@
       width: 100%; max-width: 800px;
       background: var(--input-bg); border-radius: 26px; padding: 5px 10px;
       display: flex; align-items: center; gap: 8px;
-      border: 1px solid #424242; transition: 0.2s;
-      flex-wrap: nowrap; 
+      border: 1px solid #424242; transition: 0.2s; flex-wrap: nowrap; 
     }
     
     .icon-btn {
       background: transparent; color: var(--text-dim); border: none;
       padding: 10px; font-size: 18px; cursor: pointer; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .icon-btn:hover { color: white; background: #424242; }
 
-    #input { 
-      flex-grow: 1; background: transparent; border: none; 
-      color: white; font-size: 16px; outline: none; padding: 10px 5px;
-      min-width: 0;
-    }
+    #input { flex-grow: 1; background: transparent; border: none; color: white; font-size: 16px; outline: none; padding: 10px 5px; min-width: 0; }
 
     .send-btn { 
       background: transparent; color: var(--text-dim); border: none;
       padding: 8px; font-size: 16px; cursor: pointer; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; transition: 0.2s;
-      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0;
     }
     .send-btn:hover { background: #424242; }
     .send-btn.active { background: var(--accent); color: white; }
@@ -150,25 +161,10 @@
     .ctx-item:hover { background: #3e3e3e; }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
 
-    /* --- IMAGE PREVIEW MODAL (LIGHTBOX) --- */
-    #img-modal {
-      display: none; position: fixed; z-index: 3000; 
-      left: 0; top: 0; width: 100%; height: 100%; 
-      background-color: rgba(0,0,0,0.95); 
-      justify-content: center; align-items: center;
-      flex-direction: column;
-    }
-    #img-modal-content {
-      max-width: 95%; max-height: 85%; 
-      border-radius: 5px; object-fit: contain;
-      box-shadow: 0 0 20px rgba(255,255,255,0.1);
-    }
-    #img-modal-close {
-      position: absolute; top: 20px; right: 30px; 
-      color: #f1f1f1; font-size: 40px; font-weight: bold; 
-      cursor: pointer; user-select: none;
-    }
-    #img-modal-close:hover { color: var(--accent); }
+    /* --- IMAGE PREVIEW --- */
+    #img-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); justify-content: center; align-items: center; }
+    #img-modal-content { max-width: 95%; max-height: 85%; border-radius: 5px; object-fit: contain; }
+    #img-modal-close { position: absolute; top: 20px; right: 30px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; }
 
   </style>
 </head>
@@ -178,22 +174,45 @@
     <div class="login-container">
       <div class="gpt-logo-big"><i class="fas fa-robot"></i></div>
       <h2>Welcome back</h2>
-      <div class="input-group">
-        <label class="input-label">Email address</label>
-        <input id="username" class="auth" type="text" />
-      </div>
-      <div class="input-group">
-        <label class="input-label">Password</label>
-        <input id="secret-code" type="password" class="auth" />
-      </div>
+      <div class="input-group"><label class="input-label">Email address</label><input id="username" class="auth" type="text" /></div>
+      <div class="input-group"><label class="input-label">Password</label><input id="secret-code" type="password" class="auth" /></div>
       <button id="login-btn" class="auth" onclick="login()">Continue</button>
     </div>
   </div>
 
   <div id="chat-screen" class="screen hidden">
     <div id="header">
-      <div class="model-selector">ChatGPT 4.0 <i class="fas fa-chevron-down" style="font-size:12px;"></i></div>
-      <i class="fas fa-pen-to-square new-chat-icon" onclick="panic()" title="New Chat"></i>
+      <div class="header-left"><i class="fas fa-bars hamburger"></i></div>
+      
+      <div class="model-selector" onclick="toggleDropdown()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" class="header-logo" style="filter: invert(1);">
+        <span class="model-name" id="header-title">ChatGPT 4.0</span>
+        <i class="fas fa-chevron-down chevron" id="dd-chevron"></i>
+      </div>
+
+      <div class="header-right"><i class="fas fa-pen-to-square new-chat-icon" onclick="panic()" title="New Chat"></i></div>
+    </div>
+
+    <div id="model-dropdown">
+      <div class="dropdown-item">
+        <div class="dd-icon"><i class="fas fa-sparkles" style="color:#ab68ff;"></i></div>
+        <div class="dd-text">
+          <span class="dd-title">ChatGPT 4.0</span>
+          <span class="dd-sub">Our smartest model</span>
+        </div>
+      </div>
+      
+      <div style="border-top:1px solid #444; margin: 5px 0;"></div>
+
+      <div class="dropdown-item" onclick="toggleTempMode()">
+        <div class="dd-icon"><i class="fas fa-clock-rotate-left"></i></div>
+        <div class="dd-text">
+          <span class="dd-title">Temporary Chat</span>
+        </div>
+        <div class="dd-check">
+            <i class="fas fa-toggle-off" id="temp-toggle-icon"></i>
+        </div>
+      </div>
     </div>
     
     <ul id="messages"></ul>
@@ -210,35 +229,28 @@
     </div>
   </div>
 
-  <div id="menu-overlay" onclick="closeMenu()"></div>
+  <div id="menu-overlay" onclick="closeMenu(); closeDropdown();"></div>
   <div id="context-menu">
     <div class="ctx-item" onclick="startEdit()"><i class="fas fa-pen"></i> Edit</div>
     <div class="ctx-item" onclick="unsend()" style="color:#ef4444;"><i class="fas fa-trash"></i> Delete</div>
   </div>
 
-  <div id="img-modal" onclick="closeImgModal()">
-    <span id="img-modal-close">&times;</span>
-    <img id="img-modal-content">
-  </div>
+  <div id="img-modal" onclick="closeImgModal()"><span id="img-modal-close">&times;</span><img id="img-modal-content"></div>
 
   <script>
     const socket = io();
     let myName = ""; 
     let selectedMsgId = null;
     let selectedMsgText = "";
+    let isTempMode = false;
 
     function login() {
       const btn = document.getElementById('login-btn');
       btn.innerText = "Connecting...";
-      
       const code = document.getElementById('secret-code').value;
       const nameInput = document.getElementById('username').value.trim();
-      
       if(!code) { alert("Enter password"); btn.innerText = "Continue"; return; }
-
-      if(nameInput.toLowerCase() === 'admin') myName = "ChatGPT";
-      else myName = "User";
-
+      if(nameInput.toLowerCase() === 'admin') myName = "ChatGPT"; else myName = "User";
       socket.emit('join', { code, username: myName });
     }
 
@@ -247,10 +259,43 @@
       document.getElementById('chat-screen').classList.remove('hidden');
       scrollToBottom();
     });
-
     socket.on('auth-fail', () => { alert("Incorrect login."); document.getElementById('login-btn').innerText = "Continue"; });
 
     function panic() { window.location.href = "https://www.google.com"; }
+
+    // --- DROPDOWN & TEMP CHAT ---
+    function toggleDropdown() {
+      const dd = document.getElementById('model-dropdown');
+      const chev = document.getElementById('dd-chevron');
+      const overlay = document.getElementById('menu-overlay');
+      if (dd.style.display === 'flex') { closeDropdown(); } 
+      else {
+        dd.style.display = 'flex';
+        chev.style.transform = 'rotate(180deg)';
+        overlay.style.display = 'block';
+      }
+    }
+
+    function closeDropdown() {
+      document.getElementById('model-dropdown').style.display = 'none';
+      document.getElementById('dd-chevron').style.transform = 'rotate(0deg)';
+    }
+
+    function toggleTempMode() {
+        isTempMode = !isTempMode;
+        const icon = document.getElementById('temp-toggle-icon');
+        const title = document.getElementById('header-title');
+        
+        if (isTempMode) {
+            icon.className = "fas fa-toggle-on";
+            title.style.color = "#ab68ff"; // Purple to indicate temp mode
+            alert("Temporary Chat Enabled. Messages expire in 24 hours.");
+        } else {
+            icon.className = "fas fa-toggle-off";
+            title.style.color = "#d1d5db"; // Back to grey
+        }
+        // Don't close dropdown immediately so they see the change
+    }
 
     // --- CHAT LOGIC ---
     const messages = document.getElementById('messages');
@@ -258,187 +303,91 @@
     const sendBtn = document.getElementById('send-btn');
     
     input.addEventListener('input', () => {
-      if (input.value.trim().length > 0) sendBtn.classList.add('active');
-      else sendBtn.classList.remove('active');
+      if (input.value.trim().length > 0) sendBtn.classList.add('active'); else sendBtn.classList.remove('active');
       socket.emit('typing');
     });
-
-    input.addEventListener("keypress", function(event) {
-      if (event.key === "Enter") { 
-        event.preventDefault(); 
-        sendBtn.click();
-      }
-    });
-
-    sendBtn.onclick = () => {
-      if (input.value.trim()) {
-        socket.emit('chat message', { text: input.value, type: 'text' });
-        input.value = '';
-        sendBtn.classList.remove('active');
+    input.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); sendBtn.click(); }});
+    
+    sendBtn.onclick = () => { 
+      if (input.value.trim()) { 
+        // Send 'isTemp' flag with message
+        socket.emit('chat message', { text: input.value, type: 'text', isTemp: isTempMode }); 
+        input.value = ''; sendBtn.classList.remove('active'); 
       }
     };
 
     socket.on('chat message', (msg) => { addMessageToUI(msg); scrollToBottom(); });
     socket.on('load-history', (history) => { messages.innerHTML = ''; history.forEach(addMessageToUI); scrollToBottom(); });
-
     function scrollToBottom() { setTimeout(() => { messages.scrollTop = messages.scrollHeight; }, 50); }
 
-    // --- SAFE DOWNLOAD LOGIC ---
     function downloadBase64File(base64Data, fileName) {
         try {
-            const arr = base64Data.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while(n--) u8arr[n] = bstr.charCodeAt(n);
-            const blob = new Blob([u8arr], {type: mime});
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            setTimeout(() => { document.body.removeChild(link); window.URL.revokeObjectURL(url); }, 100);
-        } catch(e) { console.error(e); alert("Download failed."); }
+            const arr = base64Data.split(','); const mime = arr[0].match(/:(.*?);/)[1]; const bstr = atob(arr[1]);
+            let n = bstr.length; const u8arr = new Uint8Array(n); while(n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob = new Blob([u8arr], {type: mime}); const url = URL.createObjectURL(blob);
+            const link = document.createElement('a'); link.href = url; link.download = fileName;
+            document.body.appendChild(link); link.click(); setTimeout(() => { document.body.removeChild(link); window.URL.revokeObjectURL(url); }, 100);
+        } catch(e) { alert("Download failed."); }
     }
-
-    // --- IMAGE PREVIEW LOGIC ---
-    function openImgModal(src) {
-        const modal = document.getElementById("img-modal");
-        const modalImg = document.getElementById("img-modal-content");
-        modal.style.display = "flex";
-        modalImg.src = src;
-    }
-    
-    function closeImgModal() {
-        document.getElementById("img-modal").style.display = "none";
-    }
+    function openImgModal(src) { document.getElementById("img-modal").style.display = "flex"; document.getElementById("img-modal-content").src = src; }
+    function closeImgModal() { document.getElementById("img-modal").style.display = "none"; }
 
     function addMessageToUI(msg) {
       const li = document.createElement('li');
       const isAI = (msg.username === "ChatGPT");
-      
       li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
       li.id = msg._id;
       
       const avatarHTML = isAI ? `<div class="avatar"><i class="fas fa-robot"></i></div>` : ``;
-
-      let contentHTML = "";
       
-      if (msg.type === 'text') {
-          contentHTML = `<span class="bubble-text">${msg.text}</span>`;
-      } 
+      let contentHTML = "";
+      if (msg.type === 'text') contentHTML = `<span class="bubble-text">${msg.text}</span>`;
       else if (msg.type === 'image') {
-          // --- IMAGE WITH PREVIEW CLICK & DOWNLOAD BTN ---
           const btnId = "dl-img-" + msg._id;
-          
-          // Note the onclick for the image wrapper triggers the modal
-          contentHTML = `
-            <div class="img-wrapper" onclick="openImgModal('${msg.text}'); event.stopPropagation();">
-               <img src="${msg.text}" class="msg-img">
-               <div id="${btnId}" class="dl-btn-img"><i class="fas fa-download"></i></div>
-            </div>
-          `;
-          
-          setTimeout(() => {
-             // Separate listener for download so it doesn't trigger modal
-             document.getElementById(btnId).onclick = (e) => {
-                 e.stopPropagation();
-                 downloadBase64File(msg.text, "image_" + Date.now() + ".png");
-             };
-          }, 0);
+          contentHTML = `<div class="img-wrapper" onclick="openImgModal('${msg.text}'); event.stopPropagation();"><img src="${msg.text}" class="msg-img"><div id="${btnId}" class="dl-btn-img"><i class="fas fa-download"></i></div></div>`;
+          setTimeout(() => { document.getElementById(btnId).onclick = (e) => { e.stopPropagation(); downloadBase64File(msg.text, "img.png"); }; }, 0);
       } 
       else if (msg.type === 'document') {
           const btnId = "dl-doc-" + msg._id;
-          contentHTML = `
-            <div class="doc-container">
-               <i class="fas fa-file-alt doc-icon"></i>
-               <span class="doc-name">${msg.fileName}</span>
-               <div id="${btnId}" class="dl-btn-doc"><i class="fas fa-download"></i></div>
-            </div>
-          `;
-          setTimeout(() => {
-             document.getElementById(btnId).onclick = (e) => {
-                 e.stopPropagation();
-                 downloadBase64File(msg.text, msg.fileName);
-             };
-          }, 0);
+          contentHTML = `<div class="doc-container"><i class="fas fa-file-pdf doc-icon"></i><span class="doc-name">${msg.fileName}</span><div id="${btnId}" class="dl-btn-doc"><i class="fas fa-download"></i></div></div>`;
+          setTimeout(() => { document.getElementById(btnId).onclick = (e) => { e.stopPropagation(); downloadBase64File(msg.text, msg.fileName); }; }, 0);
       }
 
-      li.innerHTML = `
-        ${avatarHTML}
-        <div class="msg-bubble">
-          ${contentHTML}
-        </div>
-      `;
-
+      li.innerHTML = `${avatarHTML}<div class="msg-bubble">${contentHTML}</div>`;
       li.onclick = (e) => {
-        // Prevent menu if clicking inside image modal area (handled by propagation stop above)
         if (msg.username === myName) {
-            e.stopPropagation(); 
-            selectedMsgId = msg._id;
-            selectedMsgText = msg.text; 
-            showMenu(e);
+            e.stopPropagation(); selectedMsgId = msg._id; selectedMsgText = msg.text; 
+            if(msg.type === 'text') showMenu(e); else showMenuDeleteOnly(e);
         }
       };
-
       messages.appendChild(li);
     }
 
-    // --- UPLOADS ---
-    function sendImage() {
-      const file = document.getElementById('img-upload').files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'image' });
-      reader.readAsDataURL(file);
-    }
-    function sendDoc() {
-      const file = document.getElementById('doc-upload').files[0];
-      if(!file) return;
-      if(file.size > 12 * 1024 * 1024) return alert("File too large (Max 12MB)");
-      const reader = new FileReader();
-      reader.onload = (e) => {
-          socket.emit('chat message', { text: e.target.result, type: 'document', fileName: file.name });
-      };
-      reader.readAsDataURL(file);
-    }
+    function sendImage() { const file = document.getElementById('img-upload').files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'image', isTemp: isTempMode }); reader.readAsDataURL(file); }
+    function sendDoc() { const file = document.getElementById('doc-upload').files[0]; if(!file) return; if(file.size > 12*1024*1024) return alert("Too large"); const reader = new FileReader(); reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'document', fileName: file.name, isTemp: isTempMode }); reader.readAsDataURL(file); }
 
-    // --- MENU ---
-    const menu = document.getElementById('context-menu'); 
-    const overlay = document.getElementById('menu-overlay');
-    
+    const menu = document.getElementById('context-menu'); const overlay = document.getElementById('menu-overlay');
     function showMenu(e) {
       let x = e.clientX; let y = e.clientY;
-      if (x + 120 > window.innerWidth) x = window.innerWidth - 130;
-      if (y + 100 > window.innerHeight) y = window.innerHeight - 110;
+      if (x + 120 > window.innerWidth) x = window.innerWidth - 130; if (y + 100 > window.innerHeight) y = window.innerHeight - 110;
       menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.style.display = 'flex'; overlay.style.display = 'block';
+      menu.firstElementChild.style.display = 'flex';
     }
-
-    function closeMenu() { menu.style.display = 'none'; overlay.style.display = 'none'; }
+    function showMenuDeleteOnly(e) { showMenu(e); menu.firstElementChild.style.display = 'none'; }
+    function closeMenu() { menu.style.display = 'none'; overlay.style.display = 'none'; closeDropdown(); }
     function unsend() { if(selectedMsgId) socket.emit('unsend-message', selectedMsgId); closeMenu(); }
-
     function startEdit() { 
       if(selectedMsgId) { 
         const newText = prompt("Edit message:", selectedMsgText);
-        if(newText !== null && newText !== selectedMsgText) {
-            socket.emit('edit-message', { messageId: selectedMsgId, newText }); 
-        }
+        if(newText !== null && newText !== selectedMsgText) socket.emit('edit-message', { messageId: selectedMsgId, newText }); 
       } 
       closeMenu(); 
     }
-    
     socket.on('message-unsent', (id) => { const el = document.getElementById(id); if(el) el.remove(); });
     socket.on('message-edited', ({ messageId, newText }) => {
       const el = document.getElementById(messageId);
-      if(el) {
-         const bubbleText = el.querySelector('.bubble-text');
-         if(bubbleText) bubbleText.innerText = newText;
-         if (selectedMsgId === messageId) selectedMsgText = newText;
-      }
+      if(el) { const bubbleText = el.querySelector('.bubble-text'); if(bubbleText) bubbleText.innerText = newText; if (selectedMsgId === messageId) selectedMsgText = newText; }
     });
-
   </script>
 </body>
 </html>
