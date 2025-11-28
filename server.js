@@ -24,7 +24,11 @@ const messageSchema = new mongoose.Schema({
 
 const Message = mongoose.model('Message', messageSchema);
 
+// --- SERVE FILES ---
 app.get('/', (req, res) => { res.sendFile(__dirname + '/index.html'); });
+
+// NEW: Allow the server to send your specific image
+app.get('/openai.png', (req, res) => { res.sendFile(__dirname + '/openai.png'); });
 
 io.on('connection', (socket) => {
   let currentUser = null;
@@ -33,8 +37,6 @@ io.on('connection', (socket) => {
     if (code === SECRET_CODE) {
       currentUser = username;
       socket.emit('auth-success');
-      
-      // Load last 50 messages
       const history = await Message.find().sort({ timestamp: 1 }).limit(50);
       socket.emit('load-history', history);
     } else {
@@ -44,30 +46,24 @@ io.on('connection', (socket) => {
 
   socket.on('chat message', async (data) => {
     if (!currentUser) return;
-    
     const newMsg = new Message({
       username: currentUser,
       text: data.text,
       fileName: data.fileName || "",
       type: data.type || 'text'
     });
-
     await newMsg.save();
     io.emit('chat message', newMsg);
   });
 
   socket.on('typing', () => { if (currentUser) socket.broadcast.emit('display-typing', currentUser); });
   socket.on('stop-typing', () => { socket.broadcast.emit('hide-typing'); });
-  
-  socket.on('unsend-message', async (id) => { 
-    await Message.findByIdAndDelete(id); 
-    io.emit('message-unsent', id); 
-  });
-  
+  socket.on('unsend-message', async (id) => { await Message.findByIdAndDelete(id); io.emit('message-unsent', id); });
   socket.on('edit-message', async ({ messageId, newText }) => { 
     await Message.findByIdAndUpdate(messageId, { text: newText }); 
     io.emit('message-edited', { messageId, newText }); 
   });
 });
 
-server.listen(3000, () => { console.log('Server running on 3000'); });
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });
