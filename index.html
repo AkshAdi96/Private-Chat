@@ -6,66 +6,149 @@
   <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  
   <style>
-    /* --- CHATGPT THEME --- */
+    /* --- DARK THEME (MATCHING SCREENSHOT) --- */
     :root { 
-      --bg-body: #343541; --bg-user: #343541; --bg-ai: #444654;
-      --text-primary: #ececf1; --text-secondary: #c5c5d2;
-      --input-bg: #40414f; --border: #565869; --accent: #10a37f;
+      --bg-color: #212121;
+      --input-bg: #2f2f2f;
+      --text-color: #ececec;
+      --text-dim: #b4b4b4;
+      --btn-bg: transparent;
+      --btn-border: #424242;
+      --accent: #10a37f;
     }
+    
     * { box-sizing: border-box; }
+
     body { 
-      font-family: 'Segoe UI', Helvetica, Arial, sans-serif; 
-      margin: 0; background: var(--bg-body); color: var(--text-primary); height: 100dvh; 
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
+      margin: 0; background: var(--bg-color); color: var(--text-color); height: 100dvh; 
       display: flex; flex-direction: column; overflow: hidden; 
     }
 
-    /* SCREENS */
-    .screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg-body); z-index: 100; }
+    /* HELPERS */
+    .screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg-color); z-index: 100; }
     .hidden { display: none !important; }
 
-    /* LOGIN SCREEN */
+    /* --- 1. LOGIN SCREEN --- */
     #auth-screen { justify-content: center; align-items: center; text-align: center; background: #000; }
     .login-container { width: 320px; padding: 40px 0; }
-    .gpt-logo-big { font-size: 45px; margin-bottom: 25px; color: var(--text-primary); }
+    .gpt-logo-big { font-size: 45px; margin-bottom: 25px; color: var(--text-color); }
     h2 { font-weight: 600; margin-bottom: 25px; font-size: 32px; }
+    
     .input-group { margin-bottom: 15px; text-align: left; }
-    .input-label { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 5px; }
-    input.auth { width: 100%; padding: 15px; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; outline: none; color: #000; }
-    button.auth { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-    button.auth:hover { background: #0e8e6d; }
+    .input-label { display: block; font-size: 14px; color: var(--text-dim); margin-bottom: 5px; }
+    
+    input.auth { 
+      width: 100%; padding: 15px; background: #fff; border: 1px solid #ccc; 
+      border-radius: 4px; font-size: 16px; outline: none; color: #000;
+    }
+    
+    button.auth { 
+      width: 100%; padding: 15px; background: var(--accent); color: white; 
+      border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; 
+      margin-top: 10px;
+    }
 
-    /* CHAT SCREEN */
-    #header { padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); background: var(--bg-body); display: flex; justify-content: space-between; align-items: center; height: 45px; flex-shrink: 0; }
-    .model-name { font-size: 14px; font-weight: 600; opacity: 0.9; }
-    .new-chat-icon { color: var(--text-primary); font-size: 18px; cursor: pointer; }
+    /* --- 2. CHAT HEADER --- */
+    #header { 
+      padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); 
+      background: var(--bg-color); display: flex; justify-content: space-between; 
+      align-items: center; height: 50px; flex-shrink: 0;
+    }
+    .model-selector { font-size: 16px; font-weight: 600; color: #d1d5db; display: flex; align-items: center; gap: 5px; cursor: pointer;}
+    .model-selector:hover { background: #2f2f2f; border-radius: 8px; }
+    .new-chat-icon { color: var(--text-color); font-size: 18px; cursor: pointer; }
 
-    #messages { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; }
-    .msg-row { padding: 25px 20px; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; gap: 20px; font-size: 16px; line-height: 1.6; justify-content: center; }
-    .row-content { width: 100%; max-width: 800px; display: flex; gap: 20px; }
-    .row-user { background: var(--bg-user); }
-    .avatar-user { width: 30px; height: 30px; border-radius: 2px; background: #7c7c7c; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-    .row-ai { background: var(--bg-ai); }
-    .avatar-ai { width: 30px; height: 30px; border-radius: 2px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-    .msg-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
-    .msg-img { max-width: 100%; border-radius: 5px; margin-top: 10px; }
-    .doc-link { color: var(--accent); text-decoration: underline; cursor: pointer; display: block; margin-top: 5px;}
+    /* --- 3. MESSAGES --- */
+    #messages { 
+      list-style: none; padding: 20px 0; margin: 0; 
+      flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+    }
+    
+    .msg-row { 
+      padding: 0 20px; display: flex; gap: 15px; font-size: 16px; line-height: 1.6;
+      width: 100%; max-width: 800px; margin: 0 auto;
+    }
+    
+    .avatar { 
+      width: 30px; height: 30px; border-radius: 50%; 
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px;
+    }
+    .avatar-ai { background: var(--accent); color: white; }
+    .avatar-user { background: #555; color: white; }
 
-    #form-container { padding: 20px; background: var(--bg-body); background-image: linear-gradient(180deg,rgba(53,55,64,0),#353740 58.85%); display: flex; justify-content: center; }
-    .input-box { width: 100%; max-width: 800px; background: var(--input-bg); border: 1px solid rgba(0,0,0,0.2); border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; align-items: center; padding: 12px 15px; gap: 10px; }
-    #input { flex-grow: 1; background: transparent; border: none; color: white; font-size: 16px; outline: none; font-family: inherit; }
-    .send-btn { color: #8e8ea0; background: none; border: none; font-size: 16px; cursor: pointer; transition: 0.2s; padding: 5px; border-radius: 4px; }
-    .send-btn.active { background: var(--accent); color: white; }
+    .msg-content { flex-grow: 1; min-width: 0; }
+    .sender-name { font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+    .msg-text { word-wrap: break-word; white-space: pre-wrap; color: #ececec; }
+    
+    /* Edit Button (Replaces Copy) */
+    .edit-btn {
+      margin-top: 8px; color: var(--text-dim); cursor: pointer; font-size: 14px;
+      display: inline-flex; align-items: center; gap: 5px; opacity: 0.6;
+    }
+    .edit-btn:hover { opacity: 1; color: white; }
 
-    /* Typing Cursor */
-    .typing-cursor::after { content: "▋"; animation: blink 1s infinite; margin-left: 2px; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    /* Media */
+    .msg-img { max-width: 300px; border-radius: 12px; margin-top: 10px; border: 1px solid #444; }
+    .doc-link { display: inline-flex; align-items: center; gap: 8px; background: #2f2f2f; padding: 10px 15px; border-radius: 8px; margin-top: 5px; color: var(--text-color); text-decoration: none; border: 1px solid #444;}
+    audio { height: 35px; margin-top: 5px; opacity: 0.8; }
+
+    /* --- 4. INPUT BAR (The Pill Design) --- */
+    #form-container { 
+      padding: 20px; background: var(--bg-color); 
+      display: flex; justify-content: center; width: 100%;
+    }
+    
+    .input-wrapper {
+      width: 100%; max-width: 800px;
+      background: var(--input-bg); 
+      border: 1px solid var(--btn-border);
+      border-radius: 26px; 
+      padding: 8px;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    }
+
+    /* Left Buttons (Attach, Image) */
+    .pill-btn {
+      background: transparent; color: var(--text-dim);
+      border: 1px solid transparent; border-radius: 20px;
+      padding: 8px 14px; font-size: 14px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: 0.2s; white-space: nowrap;
+    }
+    .pill-btn:hover { background: #424242; color: white; }
+    
+    /* Highlighted "Attach" style from image */
+    .pill-btn.attach { border: 1px solid #424242; }
+
+    /* Center Input */
+    #input { 
+      flex-grow: 1; background: transparent; border: none; 
+      color: white; font-size: 16px; outline: none; 
+      padding: 10px; font-family: inherit;
+    }
+    #input::placeholder { color: #888; }
+
+    /* Right Button (Voice) */
+    .voice-btn {
+      background: #424242; color: white;
+      border: none; border-radius: 20px;
+      padding: 8px 16px; font-size: 14px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .voice-btn:hover { background: #555; }
+    .recording { background: #ef4444; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
     /* Context Menu */
-    #context-menu { position: fixed; background: #202123; border: 1px solid #444; border-radius: 5px; display: none; flex-direction: column; width: 120px; z-index: 2000; }
-    .ctx-item { padding: 10px; cursor: pointer; color: #ececf1; font-size: 13px; border-bottom: 1px solid #333; }
-    .ctx-item:hover { background: #40414f; }
+    #context-menu { position: fixed; background: #2f2f2f; border: 1px solid #444; border-radius: 8px; display: none; flex-direction: column; width: 120px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .ctx-item { padding: 12px; cursor: pointer; color: #ececf1; font-size: 14px; border-bottom: 1px solid #3e3e3e; }
+    .ctx-item:hover { background: #3e3e3e; }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
+
   </style>
 </head>
 <body>
@@ -83,73 +166,69 @@
         <input id="secret-code" type="password" class="auth" />
       </div>
       <button id="login-btn" class="auth" onclick="login()">Continue</button>
-      <div style="margin-top: 20px; font-size: 14px;">Don't have an account? <span style="color:var(--accent)">Sign up</span></div>
     </div>
   </div>
 
   <div id="chat-screen" class="screen hidden">
     <div id="header">
-      <i class="fas fa-bars" style="color:white; font-size:20px;"></i>
-      <span class="model-name">ChatGPT 4.0</span>
-      <i class="fas fa-plus new-chat-icon" onclick="panic()" title="New Chat"></i>
+      <div class="model-selector">ChatGPT 4.0 <i class="fas fa-chevron-down" style="font-size:12px;"></i></div>
+      <i class="fas fa-pen-to-square new-chat-icon" onclick="panic()" title="New Chat"></i>
     </div>
     
     <ul id="messages"></ul>
     
     <div id="form-container">
-      <div class="input-box">
-        <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="sendImage()" />
+      <div class="input-wrapper">
+        
+        <label for="doc-upload" class="pill-btn attach">
+          <i class="fas fa-paperclip"></i> Attach
+        </label>
         <input type="file" id="doc-upload" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="sendDoc()" />
-        <label class="send-btn" onclick="toggleTools()"><i class="fas fa-plus-circle"></i></label>
-        <input id="input" autocomplete="off" placeholder="Message ChatGPT..." />
-        <button id="send-btn" class="send-btn"><i class="fas fa-paper-plane"></i></button>
-      </div>
-      <div style="font-size: 11px; color: #8e8ea0; text-align: center; margin-top: 10px;">ChatGPT can make mistakes. Consider checking important information.</div>
-    </div>
-  </div>
 
-  <div id="tool-menu" style="display:none; position:absolute; bottom:80px; left:20px; background:#202123; padding:10px; border-radius:5px; border:1px solid #444; z-index:20;">
-    <div style="display:flex; gap:15px;">
-      <label for="img-upload" style="cursor:pointer; color:#ececf1;"><i class="far fa-image"></i> Image</label>
-      <label for="doc-upload" style="cursor:pointer; color:#ececf1;"><i class="fas fa-paperclip"></i> File</label>
+        <label for="img-upload" class="pill-btn">
+          <i class="far fa-image"></i> Image
+        </label>
+        <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="sendImage()" />
+
+        <input id="input" autocomplete="off" placeholder="Ask anything" />
+        
+        <button id="mic-btn" class="voice-btn">
+          <i class="fas fa-bars-staggered"></i> Voice
+        </button>
+
+        <button id="send-btn" style="display:none;"></button>
+      </div>
+      
+      <div style="position:fixed; bottom:5px; font-size:11px; color:#666;">
+        ChatGPT can make mistakes. Consider checking important information.
+      </div>
     </div>
   </div>
 
   <div id="menu-overlay" onclick="closeMenu()"></div>
   <div id="context-menu">
-    <div class="ctx-item" onclick="unsend()">Delete</div>
-    <div class="ctx-item" onclick="startEdit()">Edit</div>
+    <div class="ctx-item" onclick="unsend()" style="color:#ef4444;">Delete Message</div>
   </div>
 
   <script>
-    // 2. INITIALIZE SOCKET (With error handling)
     const socket = io();
     let myName = ""; 
     let selectedMsgId = null;
 
-    socket.on('connect', () => {
-        console.log("Connected to server!");
-    });
-
-    // --- LOGIN LOGIC ---
+    // --- LOGIN ---
     function login() {
       const btn = document.getElementById('login-btn');
-      btn.innerText = "Connecting..."; // VISUAL FEEDBACK
+      btn.innerText = "Connecting...";
       
       const code = document.getElementById('secret-code').value;
       const nameInput = document.getElementById('username').value.trim();
       
-      if(!code) {
-          alert("Please enter the password.");
-          btn.innerText = "Continue";
-          return;
-      }
+      if(!code) { alert("Enter password"); btn.innerText = "Continue"; return; }
 
       // Role Logic
       if(nameInput.toLowerCase() === 'admin') myName = "ChatGPT";
       else myName = "User";
 
-      // Send Join Request
       socket.emit('join', { code, username: myName });
     }
 
@@ -159,10 +238,7 @@
       scrollToBottom();
     });
 
-    socket.on('auth-fail', () => {
-      alert("Wrong email or password.");
-      document.getElementById('login-btn').innerText = "Continue";
-    });
+    socket.on('auth-fail', () => { alert("Incorrect login."); document.getElementById('login-btn').innerText = "Continue"; });
 
     // --- PANIC ---
     function panic() { window.location.href = "https://www.google.com"; }
@@ -170,25 +246,16 @@
     // --- CHAT LOGIC ---
     const messages = document.getElementById('messages');
     const input = document.getElementById('input');
-    const sendBtn = document.getElementById('send-btn');
-
-    input.addEventListener('input', () => {
-      if(input.value.trim().length > 0) sendBtn.classList.add('active');
-      else sendBtn.classList.remove('active');
-      socket.emit('typing');
-    });
-
+    
     input.addEventListener("keypress", function(event) {
-      if (event.key === "Enter") { event.preventDefault(); sendBtn.click(); }
-    });
-
-    sendBtn.onclick = () => {
-      if (input.value.trim()) {
-        socket.emit('chat message', { text: input.value, type: 'text' });
-        input.value = '';
-        sendBtn.classList.remove('active');
+      if (event.key === "Enter") { 
+        event.preventDefault(); 
+        if (input.value.trim()) {
+          socket.emit('chat message', { text: input.value, type: 'text' });
+          input.value = '';
+        }
       }
-    };
+    });
 
     socket.on('chat message', (msg) => { addMessageToUI(msg); scrollToBottom(); });
     socket.on('load-history', (history) => { messages.innerHTML = ''; history.forEach(addMessageToUI); scrollToBottom(); });
@@ -197,68 +264,97 @@
 
     function addMessageToUI(msg) {
       const li = document.createElement('li');
-      const isAI = (msg.username === "ChatGPT");
-      li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
+      li.className = 'msg-row';
       li.id = msg._id;
       
+      const isAI = (msg.username === "ChatGPT");
       const avatarHTML = isAI 
-        ? `<div class="avatar-ai"><i class="fas fa-robot"></i></div>`
-        : `<div class="avatar-user">U</div>`;
+        ? `<div class="avatar avatar-ai"><i class="fas fa-robot"></i></div>`
+        : `<div class="avatar avatar-user">U</div>`;
 
       let content = "";
       if (msg.type === 'text') content = msg.text;
       else if (msg.type === 'image') content = `<img src="${msg.text}" class="msg-img">`;
       else if (msg.type === 'document') content = `<a class="doc-link" href="${msg.text}" download="${msg.fileName}"><i class="fas fa-file"></i> ${msg.fileName}</a>`;
+      else if (msg.type === 'audio') content = `<audio controls src="${msg.text}"></audio>`;
+
+      // The EDIT BUTTON Logic (Replaces Copy icon)
+      // Only shown if you are viewing the message (simplifies UI)
+      const editHTML = `<div class="edit-btn" onclick="startEdit('${msg._id}', '${msg.text.replace(/'/g, "\\'")}')"><i class="fas fa-pen"></i></div>`;
 
       li.innerHTML = `
-        <div class="row-content">
-          ${avatarHTML}
-          <div class="msg-text">
-            <div style="font-weight:bold; font-size:14px; margin-bottom:5px;">${isAI ? 'ChatGPT' : 'You'}</div>
-            ${content}
-          </div>
+        ${avatarHTML}
+        <div class="msg-content">
+          <div class="sender-name">${isAI ? 'ChatGPT' : 'You'}</div>
+          <div class="msg-text">${content}</div>
+          ${editHTML}
         </div>
       `;
 
-      li.oncontextmenu = (e) => showMenu(e, msg._id, msg.username === myName);
-      // Mobile Long Press
-      let pressTimer;
-      li.ontouchstart = (e) => { pressTimer = setTimeout(() => showMenu(e, msg._id, msg.username === myName), 500); };
-      li.ontouchend = () => clearTimeout(pressTimer);
-
+      // Long press to delete
+      li.oncontextmenu = (e) => { e.preventDefault(); selectedMsgId = msg._id; showMenu(e); };
+      
       messages.appendChild(li);
     }
 
-    // --- TYPING ---
-    socket.on('display-typing', (user) => {
-      if(user !== myName) {
-        const tempId = "temp-typing";
-        if(!document.getElementById(tempId)) {
-           const li = document.createElement('li');
-           li.id = tempId;
-           const isAI = (user === "ChatGPT");
-           li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
-           li.innerHTML = `<div class="row-content"><div class="${isAI ? 'avatar-ai' : 'avatar-user'}">${isAI ? '<i class="fas fa-robot"></i>' : 'U'}</div><div class="msg-text typing-cursor"></div></div>`;
-           messages.appendChild(li);
-           scrollToBottom();
-        }
+    // --- EDITING LOGIC (Direct Inline Prompt) ---
+    function startEdit(msgId, oldText) {
+      // Security: Simple check if it's possible to edit
+      const newText = prompt("Edit message:", oldText);
+      if (newText !== null && newText !== oldText) {
+        socket.emit('edit-message', { messageId: msgId, newText });
       }
-    });
-    socket.on('hide-typing', () => { const el = document.getElementById("temp-typing"); if(el) el.remove(); });
+    }
 
-    // --- UTILS ---
-    function toggleTools() { const menu = document.getElementById('tool-menu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; }
-    function sendImage() { toggleTools(); const file = document.getElementById('img-upload').files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'image' }); reader.readAsDataURL(file); }
-    function sendDoc() { toggleTools(); const file = document.getElementById('doc-upload').files[0]; if(!file) return; if(file.size > 10 * 1024 * 1024) return alert("File too large"); const reader = new FileReader(); reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'document', fileName: file.name }); reader.readAsDataURL(file); }
+    // --- UPLOADS ---
+    function sendImage() {
+      const file = document.getElementById('img-upload').files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'image' });
+      reader.readAsDataURL(file);
+    }
+    function sendDoc() {
+      const file = document.getElementById('doc-upload').files[0];
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024) return alert("File too large");
+      const reader = new FileReader();
+      reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'document', fileName: file.name });
+      reader.readAsDataURL(file);
+    }
 
+    // --- VOICE NOTES ---
+    let mediaRecorder; let audioChunks = []; const micBtn = document.getElementById('mic-btn'); let isRecording = false;
+    micBtn.onclick = async () => {
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream); mediaRecorder.start(); isRecording = true; micBtn.classList.add('recording');
+          audioChunks = []; mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+          mediaRecorder.onstop = () => {
+             const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+             const reader = new FileReader(); reader.readAsDataURL(audioBlob);
+             reader.onloadend = () => socket.emit('chat message', { text: reader.result, type: 'audio' });
+          };
+        } catch(err) { alert("Mic Access Denied"); }
+      } else { mediaRecorder.stop(); isRecording = false; micBtn.classList.remove('recording'); }
+    };
+
+    // --- MENU (For Delete) ---
     const menu = document.getElementById('context-menu'); const overlay = document.getElementById('menu-overlay');
-    function showMenu(e, msgId, isMine) { if(!isMine) return; e.preventDefault(); selectedMsgId = msgId; let x = e.clientX; let y = e.clientY; menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.style.display = 'flex'; overlay.style.display = 'block'; }
+    function showMenu(e) {
+      let x = e.clientX; let y = e.clientY;
+      menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.style.display = 'flex'; overlay.style.display = 'block';
+    }
     function closeMenu() { menu.style.display = 'none'; overlay.style.display = 'none'; }
     function unsend() { if(selectedMsgId) socket.emit('unsend-message', selectedMsgId); closeMenu(); }
-    function startEdit() { if(selectedMsgId) { const newText = prompt("Edit:"); if(newText) socket.emit('edit-message', { messageId: selectedMsgId, newText }); } closeMenu(); }
-    
+
     socket.on('message-unsent', (id) => { const el = document.getElementById(id); if(el) el.remove(); });
-    socket.on('message-edited', ({ messageId, newText }) => { const el = document.getElementById(messageId); if(el) el.querySelector('.msg-text').innerText = newText; });
+    socket.on('message-edited', ({ messageId, newText }) => {
+      const el = document.getElementById(messageId);
+      if(el) el.querySelector('.msg-text').innerText = newText;
+    });
+
   </script>
 </body>
 </html>
