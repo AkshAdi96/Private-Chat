@@ -461,7 +461,15 @@
     }
     function showMenuDeleteOnly(e) { showMenu(e); menu.firstElementChild.style.display = 'none'; }
     function closeMenu() { menu.style.display = 'none'; overlay.style.display = 'none'; }
-    function unsend() { if(selectedMsgId) socket.emit('unsend-message', selectedMsgId); closeMenu(); }
+    function unsend() { 
+      if (selectedMsgId) {
+        // The Confirmation Dialog
+        if (confirm("Are you sure you want to delete this message?")) {
+          socket.emit('unsend-message', selectedMsgId); 
+        }
+      }
+      closeMenu(); 
+    }
     function startEdit() { 
       if(selectedMsgId) { 
         const newText = prompt("Edit message:", selectedMsgText);
@@ -477,3 +485,4 @@
   </script>
 </body>
 </html>
+
