@@ -27,7 +27,7 @@ const Message = mongoose.model('Message', messageSchema);
 // --- SERVE FILES ---
 app.get('/', (req, res) => { res.sendFile(__dirname + '/index.html'); });
 
-// NEW: Allow the server to send your specific image
+// IMPORTANT: This serves your specific logo file
 app.get('/openai.png', (req, res) => { res.sendFile(__dirname + '/openai.png'); });
 
 io.on('connection', (socket) => {
