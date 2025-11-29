@@ -15,8 +15,8 @@
       --text-color: #ececec;
       --text-dim: #b4b4b4;
       --accent: #10a37f;
-      --bubble-ai: #3E3F4B; 
-      --bubble-user: #2f2f2f; 
+      --bubble-ai: #3E3F4B;   /* AI Bubble Color */
+      --bubble-user: #2f2f2f; /* User Bubble Color */
     }
     
     * { box-sizing: border-box; }
@@ -108,35 +108,24 @@
       font-size: 16px; line-height: 1.5; position: relative; word-wrap: break-word; user-select: none;
     }
 
-    /* METADATA */
+    /* THINKING INDICATOR */
+    .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
+    .dot { width: 8px; height: 8px; background: #b4b4b4; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+    .dot:nth-child(1) { animation-delay: -0.32s; } .dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    /* METADATA (Hidden Info) */
     .msg-meta {
       display: none; 
       font-size: 11px;
       color: rgba(255, 255, 255, 0.5);
-      margin-top: 8px;
-      padding-top: 8px;
+      margin-top: 8px; padding-top: 8px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       text-align: right;
     }
     .meta-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
     .msg-bubble.show-info .msg-meta { display: block; } 
     .status-text { color: #10a37f; }
-
-    /* THINKING INDICATOR (The Bouncing Dots) */
-    .typing-indicator {
-      display: flex; align-items: center; gap: 4px; padding: 5px 0;
-    }
-    .dot {
-      width: 8px; height: 8px; background: #b4b4b4; border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out both;
-    }
-    .dot:nth-child(1) { animation-delay: -0.32s; }
-    .dot:nth-child(2) { animation-delay: -0.16s; }
-    
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
-    }
 
     .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
     .img-wrapper { position: relative; display: inline-block; cursor: zoom-in; }
@@ -244,28 +233,25 @@
     const messages = document.getElementById('messages');
     const input = document.getElementById('input');
     const sendBtn = document.getElementById('send-btn');
-    
     let typingTimer;
-
+    
     input.addEventListener('input', () => {
       if (input.value.trim().length > 0) sendBtn.classList.add('active'); else sendBtn.classList.remove('active');
-      
-      // SEND TYPING SIGNAL
       socket.emit('typing');
       clearTimeout(typingTimer);
       typingTimer = setTimeout(() => socket.emit('stop-typing'), 1000);
     });
-
     input.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); sendBtn.click(); }});
     sendBtn.onclick = () => { 
       if (input.value.trim()) { 
         socket.emit('chat message', { text: input.value, type: 'text' }); 
-        input.value = ''; sendBtn.classList.remove('active'); 
-        socket.emit('stop-typing');
+        input.value = ''; sendBtn.classList.remove('active');
+        socket.emit('stop-typing'); 
       }
     };
 
     socket.on('chat message', (msg) => { 
+        // Instant Read Mark
         if(document.visibilityState === 'visible' && msg.username !== myName) {
             socket.emit('mark-as-read', msg._id);
         }
@@ -280,48 +266,24 @@
         scrollToBottom(); 
     });
 
-    // --- TYPING INDICATOR (THINKING) ---
+    // --- TYPING (BOUNCING DOTS) ---
     socket.on('display-typing', (user) => {
         if (user !== myName) {
-            // Check if already showing
             if (document.getElementById('temp-typing')) return;
-
             const li = document.createElement('li');
             li.id = 'temp-typing';
-            
-            // Logic: If AI is typing, show AI style. If User is typing, show User style (hidden/minimal)
             const isAI = (user === "ChatGPT");
             li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
-            
-            const avatarHTML = isAI ? 
-                `<div class="avatar"><img src="/openai.png" class="avatar-logo"></div>` : ``;
-
-            // Bouncing Dots Bubble
-            const bubbleHTML = `
-                <div class="msg-bubble" style="padding: 15px 20px;">
-                    <div class="typing-indicator">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                </div>
-            `;
-
-            li.innerHTML = `${avatarHTML}${bubbleHTML}`;
+            const avatarHTML = isAI ? `<div class="avatar"><img src="/openai.png" class="avatar-logo"></div>` : ``;
+            li.innerHTML = `${avatarHTML}<div class="msg-bubble" style="padding:15px;"><div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
             messages.appendChild(li);
             scrollToBottom();
         }
     });
+    socket.on('hide-typing', () => { const el = document.getElementById('temp-typing'); if(el) el.remove(); });
 
-    socket.on('hide-typing', () => {
-        const el = document.getElementById('temp-typing');
-        if (el) el.remove();
-    });
-
-    socket.on('messages-read', () => {
-        // Simple update: reload quietly or just let next refresh handle it
-    });
-
+    // --- STATUS UPDATES ---
+    socket.on('messages-read', () => { /* Handled by reload/next msg in simple version */ });
     socket.on('single-msg-read', (msgId) => {
         const el = document.getElementById(msgId);
         if(el) {
@@ -361,9 +323,9 @@
     }
 
     function addMessageToUI(msg) {
-      // Remove typing indicator if exists so new msg goes below it
-      const typingEl = document.getElementById('temp-typing');
-      if (typingEl) typingEl.remove();
+      // Remove typing bubble if it exists to place msg below
+      const typing = document.getElementById('temp-typing');
+      if(typing) typing.remove();
 
       const list = document.getElementById('messages');
       
@@ -408,6 +370,7 @@
           }, 0);
       }
 
+      // METADATA
       const timeSent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       let statusContent = "Sent";
@@ -429,6 +392,7 @@
 
       li.innerHTML = `${avatarHTML}<div class="msg-bubble">${contentHTML}${metaHTML}</div>`;
       
+      // Separate interactions: Click = Info, Right Click/Hold = Menu
       li.onclick = (e) => {
         if(e.target.closest('.dl-btn-img') || e.target.closest('.dl-btn-doc')) return;
 
@@ -439,13 +403,28 @@
             document.querySelectorAll('.msg-bubble.show-info').forEach(b => b.classList.remove('show-info'));
             bubble.classList.add('show-info');
         }
+      };
 
+      li.oncontextmenu = (e) => {
         if (msg.username === myName) {
+            e.preventDefault(); 
             e.stopPropagation(); 
             selectedMsgId = msg._id; selectedMsgText = msg.text; 
             if(msg.type === 'text') showMenu(e); else showMenuDeleteOnly(e);
         }
       };
+      // Mobile Long Press simulation
+      let pressTimer;
+      li.ontouchstart = (e) => { 
+          pressTimer = setTimeout(() => { 
+              if (msg.username === myName) {
+                  selectedMsgId = msg._id; selectedMsgText = msg.text; 
+                  if(msg.type === 'text') showMenu(e.touches[0]); else showMenuDeleteOnly(e.touches[0]);
+              }
+          }, 600); 
+      };
+      li.ontouchend = () => clearTimeout(pressTimer);
+
       list.appendChild(li);
     }
 
@@ -462,13 +441,10 @@
     function showMenuDeleteOnly(e) { showMenu(e); menu.firstElementChild.style.display = 'none'; }
     function closeMenu() { menu.style.display = 'none'; overlay.style.display = 'none'; }
     function unsend() { 
-      if (selectedMsgId) {
-        // The Confirmation Dialog
         if (confirm("Are you sure you want to delete this message?")) {
-          socket.emit('unsend-message', selectedMsgId); 
+            if(selectedMsgId) socket.emit('unsend-message', selectedMsgId); 
         }
-      }
-      closeMenu(); 
+        closeMenu(); 
     }
     function startEdit() { 
       if(selectedMsgId) { 
@@ -485,4 +461,3 @@
   </script>
 </body>
 </html>
-
