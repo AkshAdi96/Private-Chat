@@ -15,8 +15,8 @@
       --text-color: #ececec;
       --text-dim: #b4b4b4;
       --accent: #10a37f;
-      --bubble-ai: #2f2f2f; 
-      --bubble-user: #2f2f2f; 
+      --bubble-ai: #3E3F4B;   /* Lighter Grey for AI */
+      --bubble-user: #2f2f2f; /* Dark Grey for User (Was Green) */
     }
     
     * { box-sizing: border-box; }
@@ -34,7 +34,6 @@
     #auth-screen { justify-content: center; align-items: center; text-align: center; background: #000; }
     .login-container { width: 320px; padding: 40px 0; }
     
-    /* Login Logo: No filters, exact image */
     .gpt-logo-big { 
       width: 60px; height: 60px; 
       margin-bottom: 25px; 
@@ -62,9 +61,7 @@
       gap: 8px; cursor: default; padding: 8px 12px; border-radius: 8px; user-select: none;
     }
     
-    /* Header Logo Small: No filters */
     .header-logo-small { width: 24px; height: 24px; object-fit: contain; }
-    
     .model-name { font-size: 18px; font-weight: 700; color: #d1d5db; }
     .header-right { flex: 1; display: flex; justify-content: flex-end; }
     .new-chat-icon { color: var(--text-color); font-size: 18px; cursor: pointer; }
@@ -83,20 +80,31 @@
     
     .msg-row { display: flex; width: 100%; max-width: 800px; }
     
-    .row-user { justify-content: flex-start; }
-    .row-user .msg-bubble { background: var(--bubble-user); border-top-left-radius: 2px; color: white; cursor: pointer; }
+    /* USER (Right) */
+    .row-user { justify-content: flex-end; }
+    .row-user .msg-bubble { 
+        background: var(--bubble-user); /* Dark Grey now */
+        border-top-right-radius: 2px;
+        border-top-left-radius: 18px; 
+        color: var(--text-color); 
+        cursor: pointer; 
+    }
     .row-user .avatar { display: none; } 
 
-    .row-ai { justify-content: flex-end; }
-    .row-ai .msg-bubble { background: var(--bubble-ai); border-top-right-radius: 2px; }
+    /* AI (Left) */
+    .row-ai { justify-content: flex-start; }
+    .row-ai .msg-bubble { 
+        background: var(--bubble-ai); 
+        border-top-left-radius: 2px; 
+        border-top-right-radius: 18px;
+    }
     
-    /* AI Avatar Container */
+    /* AI Avatar */
     .row-ai .avatar { 
-        margin-left: 10px; background: var(--accent); order: 2; 
+        margin-right: 10px; background: var(--accent); order: -1; 
         width: 30px; height: 30px; border-radius: 50%; 
         display: flex; align-items: center; justify-content: center; padding: 5px; 
     } 
-    /* Avatar Image: No filters */
     .avatar-logo { width: 100%; height: 100%; object-fit: contain; }
 
     .msg-bubble {
