@@ -54,12 +54,7 @@
       align-items: center; height: 50px; flex-shrink: 0; position: relative;
     }
     .header-left { flex: 1; }
-    
-    /* REFRESH ICON STYLE */
-    .refresh-icon { color: var(--text-dim); font-size: 18px; cursor: pointer; padding: 5px; }
-    .refresh-icon:hover { color: white; }
-    .spin-anim { animation: spin 1s linear infinite; }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .hamburger { color: var(--text-dim); font-size: 20px; cursor: pointer; }
 
     .model-selector { 
       flex: 2; display: flex; justify-content: center; align-items: center; 
@@ -127,14 +122,6 @@
     .msg-bubble.show-info .msg-meta { display: block; } 
     .status-text { color: #10a37f; }
 
-    /* THINKING INDICATOR */
-    .typing-bubble { padding: 15px 20px; border-radius: 18px; background: var(--bubble-ai); display: inline-block; }
-    .typing-dots { display: flex; gap: 4px; }
-    .dot { width: 8px; height: 8px; background: #b4b4b4; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
-    .dot:nth-child(1) { animation-delay: -0.32s; }
-    .dot:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-
     .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
     .img-wrapper { position: relative; display: inline-block; cursor: zoom-in; }
     .dl-btn-img { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); }
@@ -144,7 +131,7 @@
     .doc-name { font-size: 14px; text-decoration: none; word-break: break-all; flex-grow: 1; }
     .dl-btn-doc { background: rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-left: 5px; }
     
-    /* DIRECT DELETE BTN */
+    /* DELETE BTN (Docs) */
     .direct-del-btn { margin-left: 8px; color: #ef4444; cursor: pointer; font-size: 14px; padding: 5px; }
 
     /* --- 4. INPUT BAR --- */
@@ -162,10 +149,27 @@
     .ctx-item { padding: 12px 15px; cursor: pointer; color: #ececf1; font-size: 14px; border-bottom: 1px solid #3e3e3e; display: flex; align-items: center; gap: 10px; }
     .ctx-item:hover { background: #3e3e3e; }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
+    
+    /* IMG PREVIEW */
     #img-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); justify-content: center; align-items: center; flex-direction: column; }
     #img-modal-content { max-width: 95%; max-height: 80%; border-radius: 5px; object-fit: contain; }
     #img-modal-close { position: absolute; top: 20px; right: 30px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; }
-    #img-modal-del { margin-top: 20px; background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: none; }
+    
+    /* DELETE BUTTON (Floating at bottom) */
+    #img-modal-del {
+      position: absolute;
+      bottom: 50px; /* Floats above bottom edge */
+      background: #ef4444; 
+      color: white; 
+      border: none; 
+      padding: 12px 25px; 
+      border-radius: 30px; 
+      font-size: 16px; 
+      cursor: pointer; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 3001;
+    }
 
   </style>
 </head>
@@ -174,7 +178,7 @@
   <div id="auth-screen" class="screen">
     <div class="login-container">
       <img src="/openai.png" class="gpt-logo-big">
-      <h2>Welcome back</h2>
+      <h2>Welcome to ChatGPT</h2>
       <div class="input-group"><label class="input-label">Email address</label><input id="username" class="auth" type="text" /></div>
       <div class="input-group"><label class="input-label">Password</label><input id="secret-code" type="password" class="auth" /></div>
       <button id="login-btn" class="auth" onclick="login()">Continue</button>
@@ -183,15 +187,11 @@
 
   <div id="chat-screen" class="screen hidden">
     <div id="header">
-      <div class="header-left">
-        <i class="fas fa-sync-alt refresh-icon" id="refresh-btn" onclick="refreshChat()" title="Refresh"></i>
-      </div>
-      
+      <div class="header-left"><i class="fas fa-bars hamburger"></i></div>
       <div class="model-selector">
         <img src="/openai.png" class="header-logo-small">
         <span class="model-name">ChatGPT 4.0</span>
       </div>
-
       <div class="header-right"><i class="fas fa-pen-to-square new-chat-icon" onclick="panic()" title="New Chat"></i></div>
     </div>
     
@@ -218,7 +218,7 @@
   <div id="img-modal" onclick="closeImgModal()">
       <span id="img-modal-close">&times;</span>
       <img id="img-modal-content">
-      <button id="img-modal-del" onclick="deleteCurrentPreview(event)"><i class="fas fa-trash"></i> Delete Image</button>
+      <button id="img-modal-del" onclick="deleteCurrentPreview(event)"><i class="fas fa-trash"></i> Delete</button>
   </div>
 
   <script>
@@ -228,7 +228,7 @@
     let selectedMsgText = "";
     let previewMsgId = null;
     
-    // SAVE STATE
+    // SAVE STATE FOR MOBILE WAKE UP
     let savedCode = null;
     let savedName = null;
     let lastDateRendered = null;
@@ -245,28 +245,15 @@
       socket.emit('join', { code, username: myName });
     }
 
-    // --- MANUAL REFRESH LOGIC ---
-    function refreshChat() {
-        const btn = document.getElementById('refresh-btn');
-        btn.classList.add('spin-anim'); // Start visual spin
-        
-        // 1. Ensure connected
-        if(!socket.connected) socket.connect();
-        
-        // 2. Re-sync messages without page reload
-        if(savedCode && savedName) {
-            socket.emit('join', { code: savedCode, username: savedName });
-        }
-        
-        // Stop spin animation after 1s
-        setTimeout(() => btn.classList.remove('spin-anim'), 1000);
-    }
-
-    // --- AUTO RECONNECT LOGIC ---
+    // Auto Reconnect
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === 'visible' && savedCode) {
-            refreshChat(); // Reuse refresh logic on wake up
+            if(!socket.connected) socket.connect();
+            socket.emit('join', { code: savedCode, username: savedName });
         }
+    });
+    socket.on('connect', () => {
+        if(savedCode && savedName) socket.emit('join', { code: savedCode, username: savedName });
     });
 
     socket.on('auth-success', () => {
@@ -327,13 +314,15 @@
             const isAI = (user === "ChatGPT");
             li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
             const avatarHTML = isAI ? `<div class="avatar"><img src="/openai.png" class="avatar-logo"></div>` : ``;
-            li.innerHTML = `${avatarHTML}<div class="typing-bubble"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+            // Add a placeholder bubble with ...
+            li.innerHTML = `${avatarHTML}<div class="msg-bubble" style="padding:15px; color:#aaa;">. . .</div>`;
             messages.appendChild(li);
             scrollToBottom();
         }
     });
     socket.on('hide-typing', () => { const el = document.getElementById('temp-typing'); if(el) el.remove(); });
 
+    socket.on('messages-read', () => {}); 
     socket.on('single-msg-read', (msgId) => {
         const el = document.getElementById(msgId);
         if(el) {
@@ -393,6 +382,8 @@
       if(typing) typing.remove();
 
       const list = document.getElementById('messages');
+      
+      // Safe Date logic
       const rawDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
       const dateObj = isNaN(rawDate.getTime()) ? new Date() : rawDate;
 
@@ -430,7 +421,7 @@
           }, 0);
       }
 
-      // METADATA
+      // META DATA
       const timeSent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       let statusContent = "Sent";
       if (msg.readAt) {
@@ -452,7 +443,7 @@
       li.innerHTML = `${avatarHTML}<div class="msg-bubble">${contentHTML}${metaHTML}</div>`;
       
       li.onclick = (e) => {
-        if(e.target.closest('.dl-btn-img') || e.target.closest('.dl-btn-doc') || e.target.closest('.direct-del-btn')) return;
+        if(e.target.closest('.dl-btn-doc') || e.target.closest('.direct-del-btn')) return;
         const bubble = li.querySelector('.msg-bubble');
         if (bubble.classList.contains('show-info')) bubble.classList.remove('show-info');
         else {
@@ -499,9 +490,10 @@
       menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.style.display = 'flex'; overlay.style.display = 'block';
       menu.firstElementChild.style.display = 'flex';
     }
+    function showMenuDeleteOnly(e) { showMenu(e); menu.firstElementChild.style.display = 'none'; }
     function closeMenu() { menu.style.display = 'none'; overlay.style.display = 'none'; }
     function unsend() { 
-        if (confirm("Delete this message?")) {
+        if (confirm("Are you sure?")) {
             if(selectedMsgId) socket.emit('unsend-message', selectedMsgId); 
         }
         closeMenu(); 
