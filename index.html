@@ -15,8 +15,8 @@
       --text-color: #ececec;
       --text-dim: #b4b4b4;
       --accent: #10a37f;
-      --bubble-ai: #3E3F4B;   /* AI Bubble Color */
-      --bubble-user: #2f2f2f; /* User Bubble Color */
+      --bubble-ai: #3E3F4B; 
+      --bubble-user: #2f2f2f; 
     }
     
     * { box-sizing: border-box; }
@@ -108,18 +108,13 @@
       font-size: 16px; line-height: 1.5; position: relative; word-wrap: break-word; user-select: none;
     }
 
-    /* THINKING INDICATOR */
-    .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
-    .dot { width: 8px; height: 8px; background: #b4b4b4; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
-    .dot:nth-child(1) { animation-delay: -0.32s; } .dot:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-
     /* METADATA (Hidden Info) */
     .msg-meta {
       display: none; 
       font-size: 11px;
       color: rgba(255, 255, 255, 0.5);
-      margin-top: 8px; padding-top: 8px;
+      margin-top: 8px;
+      padding-top: 8px;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       text-align: right;
     }
@@ -203,11 +198,19 @@
   <div id="img-modal" onclick="closeImgModal()"><span id="img-modal-close">&times;</span><img id="img-modal-content"></div>
 
   <script>
-    const socket = io();
+    const socket = io({
+        reconnection: true,
+        reconnectionDelay: 500,
+        reconnectionAttempts: Infinity
+    });
+    
     let myName = ""; 
     let selectedMsgId = null;
     let selectedMsgText = "";
     
+    // SAVE STATE FOR MOBILE WAKE UP
+    let savedCode = null;
+    let savedName = null;
     let lastDateRendered = null;
 
     function login() {
@@ -217,15 +220,43 @@
       const nameInput = document.getElementById('username').value.trim();
       if(!code) { alert("Enter password"); btn.innerText = "Continue"; return; }
       if(nameInput.toLowerCase() === 'admin') myName = "ChatGPT"; else myName = "User";
+      
+      // Save for auto-reconnect
+      savedCode = code;
+      savedName = myName;
+
       socket.emit('join', { code, username: myName });
     }
+
+    // --- MOBILE WAKE UP LOGIC ---
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') {
+            console.log("App woke up - Re-syncing...");
+            if(savedCode && savedName) {
+                if(!socket.connected) socket.connect();
+                // Emit join again to fetch missed messages (sync)
+                socket.emit('join', { code: savedCode, username: savedName });
+            }
+        }
+    });
+    
+    socket.on('connect', () => {
+        if(savedCode && savedName) {
+            socket.emit('join', { code: savedCode, username: savedName });
+        }
+    });
 
     socket.on('auth-success', () => {
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('chat-screen').classList.remove('hidden');
       scrollToBottom();
     });
-    socket.on('auth-fail', () => { alert("Incorrect login."); document.getElementById('login-btn').innerText = "Continue"; });
+    
+    socket.on('auth-fail', () => { 
+        if(!document.getElementById('auth-screen').classList.contains('hidden')) {
+            alert("Incorrect login."); document.getElementById('login-btn').innerText = "Continue"; 
+        }
+    });
 
     function panic() { window.location.href = "https://www.google.com"; }
 
@@ -233,25 +264,20 @@
     const messages = document.getElementById('messages');
     const input = document.getElementById('input');
     const sendBtn = document.getElementById('send-btn');
-    let typingTimer;
     
     input.addEventListener('input', () => {
       if (input.value.trim().length > 0) sendBtn.classList.add('active'); else sendBtn.classList.remove('active');
       socket.emit('typing');
-      clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => socket.emit('stop-typing'), 1000);
     });
     input.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); sendBtn.click(); }});
     sendBtn.onclick = () => { 
       if (input.value.trim()) { 
         socket.emit('chat message', { text: input.value, type: 'text' }); 
-        input.value = ''; sendBtn.classList.remove('active');
-        socket.emit('stop-typing'); 
+        input.value = ''; sendBtn.classList.remove('active'); 
       }
     };
 
     socket.on('chat message', (msg) => { 
-        // Instant Read Mark
         if(document.visibilityState === 'visible' && msg.username !== myName) {
             socket.emit('mark-as-read', msg._id);
         }
@@ -266,24 +292,8 @@
         scrollToBottom(); 
     });
 
-    // --- TYPING (BOUNCING DOTS) ---
-    socket.on('display-typing', (user) => {
-        if (user !== myName) {
-            if (document.getElementById('temp-typing')) return;
-            const li = document.createElement('li');
-            li.id = 'temp-typing';
-            const isAI = (user === "ChatGPT");
-            li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
-            const avatarHTML = isAI ? `<div class="avatar"><img src="/openai.png" class="avatar-logo"></div>` : ``;
-            li.innerHTML = `${avatarHTML}<div class="msg-bubble" style="padding:15px;"><div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
-            messages.appendChild(li);
-            scrollToBottom();
-        }
-    });
-    socket.on('hide-typing', () => { const el = document.getElementById('temp-typing'); if(el) el.remove(); });
+    socket.on('messages-read', () => { /* Auto handled next refresh/msg */ });
 
-    // --- STATUS UPDATES ---
-    socket.on('messages-read', () => { /* Handled by reload/next msg in simple version */ });
     socket.on('single-msg-read', (msgId) => {
         const el = document.getElementById(msgId);
         if(el) {
@@ -323,12 +333,9 @@
     }
 
     function addMessageToUI(msg) {
-      // Remove typing bubble if it exists to place msg below
-      const typing = document.getElementById('temp-typing');
-      if(typing) typing.remove();
-
       const list = document.getElementById('messages');
       
+      // SAFE DATE LOGIC
       const rawDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
       const dateObj = isNaN(rawDate.getTime()) ? new Date() : rawDate;
 
@@ -370,7 +377,7 @@
           }, 0);
       }
 
-      // METADATA
+      // META DATA
       const timeSent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       let statusContent = "Sent";
@@ -392,7 +399,6 @@
 
       li.innerHTML = `${avatarHTML}<div class="msg-bubble">${contentHTML}${metaHTML}</div>`;
       
-      // Separate interactions: Click = Info, Right Click/Hold = Menu
       li.onclick = (e) => {
         if(e.target.closest('.dl-btn-img') || e.target.closest('.dl-btn-doc')) return;
 
@@ -407,23 +413,23 @@
 
       li.oncontextmenu = (e) => {
         if (msg.username === myName) {
-            e.preventDefault(); 
-            e.stopPropagation(); 
+            e.preventDefault(); e.stopPropagation(); 
             selectedMsgId = msg._id; selectedMsgText = msg.text; 
             if(msg.type === 'text') showMenu(e); else showMenuDeleteOnly(e);
         }
       };
-      // Mobile Long Press simulation
+
+      // Mobile Long Press
       let pressTimer;
-      li.ontouchstart = (e) => { 
-          pressTimer = setTimeout(() => { 
+      li.addEventListener('touchstart', (e) => {
+          pressTimer = setTimeout(() => {
               if (msg.username === myName) {
                   selectedMsgId = msg._id; selectedMsgText = msg.text; 
                   if(msg.type === 'text') showMenu(e.touches[0]); else showMenuDeleteOnly(e.touches[0]);
               }
           }, 600); 
-      };
-      li.ontouchend = () => clearTimeout(pressTimer);
+      });
+      li.addEventListener('touchend', () => clearTimeout(pressTimer));
 
       list.appendChild(li);
     }
