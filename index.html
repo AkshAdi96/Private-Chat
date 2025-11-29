@@ -108,28 +108,37 @@
       font-size: 16px; line-height: 1.5; position: relative; word-wrap: break-word; user-select: none;
     }
 
-    /* METADATA (Hidden Info) */
+    /* THINKING INDICATOR */
+    .typing-bubble { padding: 15px 20px; border-radius: 18px; background: var(--bubble-ai); display: inline-block; }
+    .typing-dots { display: flex; gap: 4px; }
+    .dot { width: 8px; height: 8px; background: #b4b4b4; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    /* METADATA */
     .msg-meta {
-      display: none; 
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: right;
+      display: none; font-size: 11px; color: rgba(255, 255, 255, 0.5);
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: right;
     }
     .meta-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
     .msg-bubble.show-info .msg-meta { display: block; } 
     .status-text { color: #10a37f; }
 
+    /* IMAGES */
     .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
     .img-wrapper { position: relative; display: inline-block; cursor: zoom-in; }
-    .dl-btn-img { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); }
-
-    .doc-container { display: inline-flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 12px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.1); max-width: 100%; }
+    
+    /* DOCS */
+    .doc-container { display: inline-flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 12px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.1); max-width: 100%; position: relative; }
     .doc-icon { font-size: 20px; color: inherit; flex-shrink: 0; }
-    .doc-name { font-size: 14px; text-decoration: none; word-break: break-all; flex-grow: 1; }
-    .dl-btn-doc { background: rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-left: 5px; }
+    .doc-name { font-size: 14px; text-decoration: none; word-break: break-all; flex-grow: 1; padding-right: 20px; }
+    .dl-btn-doc { background: rgba(255,255,255,0.1); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    
+    /* DIRECT DELETE BUTTON (ON DOCUMENTS) */
+    .direct-del-btn {
+      margin-left: 8px; color: #ef4444; cursor: pointer; font-size: 14px; padding: 5px;
+    }
 
     /* --- 4. INPUT BAR --- */
     #form-container { padding: 15px; background: var(--bg-color); display: flex; justify-content: center; width: 100%; }
@@ -146,9 +155,17 @@
     .ctx-item { padding: 12px 15px; cursor: pointer; color: #ececf1; font-size: 14px; border-bottom: 1px solid #3e3e3e; display: flex; align-items: center; gap: 10px; }
     .ctx-item:hover { background: #3e3e3e; }
     #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1999; }
-    #img-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); justify-content: center; align-items: center; }
-    #img-modal-content { max-width: 95%; max-height: 85%; border-radius: 5px; object-fit: contain; }
+    
+    /* IMG PREVIEW (LIGHTBOX) */
+    #img-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); justify-content: center; align-items: center; flex-direction: column; }
+    #img-modal-content { max-width: 95%; max-height: 80%; border-radius: 5px; object-fit: contain; }
     #img-modal-close { position: absolute; top: 20px; right: 30px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; }
+    
+    /* DELETE BUTTON IN PREVIEW */
+    #img-modal-del {
+      margin-top: 20px; background: #ef4444; color: white; border: none; 
+      padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: none;
+    }
 
   </style>
 </head>
@@ -167,12 +184,10 @@
   <div id="chat-screen" class="screen hidden">
     <div id="header">
       <div class="header-left"><i class="fas fa-bars hamburger"></i></div>
-      
       <div class="model-selector">
         <img src="/openai.png" class="header-logo-small">
         <span class="model-name">ChatGPT 4.0</span>
       </div>
-
       <div class="header-right"><i class="fas fa-pen-to-square new-chat-icon" onclick="panic()" title="New Chat"></i></div>
     </div>
     
@@ -195,18 +210,19 @@
     <div class="ctx-item" onclick="startEdit()"><i class="fas fa-pen"></i> Edit</div>
     <div class="ctx-item" onclick="unsend()" style="color:#ef4444;"><i class="fas fa-trash"></i> Delete</div>
   </div>
-  <div id="img-modal" onclick="closeImgModal()"><span id="img-modal-close">&times;</span><img id="img-modal-content"></div>
+  
+  <div id="img-modal" onclick="closeImgModal()">
+      <span id="img-modal-close">&times;</span>
+      <img id="img-modal-content">
+      <button id="img-modal-del" onclick="deleteCurrentPreview(event)"><i class="fas fa-trash"></i> Delete Image</button>
+  </div>
 
   <script>
-    const socket = io({
-        reconnection: true,
-        reconnectionDelay: 500,
-        reconnectionAttempts: Infinity
-    });
-    
+    const socket = io();
     let myName = ""; 
     let selectedMsgId = null;
     let selectedMsgText = "";
+    let previewMsgId = null; // For image deletion
     
     // SAVE STATE FOR MOBILE WAKE UP
     let savedCode = null;
@@ -220,28 +236,13 @@
       const nameInput = document.getElementById('username').value.trim();
       if(!code) { alert("Enter password"); btn.innerText = "Continue"; return; }
       if(nameInput.toLowerCase() === 'admin') myName = "ChatGPT"; else myName = "User";
-      
-      // Save for auto-reconnect
-      savedCode = code;
-      savedName = myName;
-
+      savedCode = code; savedName = myName;
       socket.emit('join', { code, username: myName });
     }
 
-    // --- MOBILE WAKE UP LOGIC ---
     document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === 'visible') {
-            console.log("App woke up - Re-syncing...");
-            if(savedCode && savedName) {
-                if(!socket.connected) socket.connect();
-                // Emit join again to fetch missed messages (sync)
-                socket.emit('join', { code: savedCode, username: savedName });
-            }
-        }
-    });
-    
-    socket.on('connect', () => {
-        if(savedCode && savedName) {
+        if (document.visibilityState === 'visible' && savedCode) {
+            if(!socket.connected) socket.connect();
             socket.emit('join', { code: savedCode, username: savedName });
         }
     });
@@ -251,7 +252,6 @@
       document.getElementById('chat-screen').classList.remove('hidden');
       scrollToBottom();
     });
-    
     socket.on('auth-fail', () => { 
         if(!document.getElementById('auth-screen').classList.contains('hidden')) {
             alert("Incorrect login."); document.getElementById('login-btn').innerText = "Continue"; 
@@ -264,16 +264,20 @@
     const messages = document.getElementById('messages');
     const input = document.getElementById('input');
     const sendBtn = document.getElementById('send-btn');
-    
+    let typingTimer;
+
     input.addEventListener('input', () => {
       if (input.value.trim().length > 0) sendBtn.classList.add('active'); else sendBtn.classList.remove('active');
       socket.emit('typing');
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => socket.emit('stop-typing'), 1000);
     });
     input.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); sendBtn.click(); }});
     sendBtn.onclick = () => { 
       if (input.value.trim()) { 
         socket.emit('chat message', { text: input.value, type: 'text' }); 
-        input.value = ''; sendBtn.classList.remove('active'); 
+        input.value = ''; sendBtn.classList.remove('active');
+        socket.emit('stop-typing'); 
       }
     };
 
@@ -292,8 +296,23 @@
         scrollToBottom(); 
     });
 
-    socket.on('messages-read', () => { /* Auto handled next refresh/msg */ });
+    // --- TYPING BUBBLES ---
+    socket.on('display-typing', (user) => {
+        if (user !== myName) {
+            if (document.getElementById('temp-typing')) return;
+            const li = document.createElement('li');
+            li.id = 'temp-typing';
+            const isAI = (user === "ChatGPT");
+            li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
+            const avatarHTML = isAI ? `<div class="avatar"><img src="/openai.png" class="avatar-logo"></div>` : ``;
+            li.innerHTML = `${avatarHTML}<div class="typing-bubble"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+            messages.appendChild(li);
+            scrollToBottom();
+        }
+    });
+    socket.on('hide-typing', () => { const el = document.getElementById('temp-typing'); if(el) el.remove(); });
 
+    socket.on('messages-read', () => {}); 
     socket.on('single-msg-read', (msgId) => {
         const el = document.getElementById(msgId);
         if(el) {
@@ -320,8 +339,31 @@
             document.body.appendChild(link); link.click(); setTimeout(() => { document.body.removeChild(link); window.URL.revokeObjectURL(url); }, 100);
         } catch(e) { alert("Download failed."); }
     }
-    function openImgModal(src) { document.getElementById("img-modal").style.display = "flex"; document.getElementById("img-modal-content").src = src; }
+
+    // --- IMAGE MODAL LOGIC ---
+    function openImgModal(src, msgId, isMine) { 
+        document.getElementById("img-modal").style.display = "flex"; 
+        document.getElementById("img-modal-content").src = src;
+        
+        // Show Delete Button ONLY if it's my image
+        const delBtn = document.getElementById("img-modal-del");
+        if(isMine) {
+            delBtn.style.display = "block";
+            previewMsgId = msgId;
+        } else {
+            delBtn.style.display = "none";
+            previewMsgId = null;
+        }
+    }
     function closeImgModal() { document.getElementById("img-modal").style.display = "none"; }
+    
+    function deleteCurrentPreview(e) {
+        e.stopPropagation();
+        if(previewMsgId && confirm("Delete this image?")) {
+            socket.emit('unsend-message', previewMsgId);
+            closeImgModal();
+        }
+    }
 
     function formatDate(dateObj) {
         const today = new Date();
@@ -333,9 +375,11 @@
     }
 
     function addMessageToUI(msg) {
+      // Remove typing if exists
+      const typing = document.getElementById('temp-typing');
+      if(typing) typing.remove();
+
       const list = document.getElementById('messages');
-      
-      // SAFE DATE LOGIC
       const rawDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
       const dateObj = isNaN(rawDate.getTime()) ? new Date() : rawDate;
 
@@ -353,33 +397,33 @@
       li.className = `msg-row ${isAI ? 'row-ai' : 'row-user'}`;
       li.id = msg._id;
       
-      const avatarHTML = isAI ? 
-        `<div class="avatar">
-           <img src="/openai.png" class="avatar-logo">
-         </div>` : ``;
+      const avatarHTML = isAI ? `<div class="avatar"><img src="/openai.png" class="avatar-logo"></div>` : ``;
       
+      // CHECK IF MESSAGE IS MINE
+      const isMine = (msg.username === myName);
+
       let contentHTML = "";
-      if (msg.type === 'text') contentHTML = `<span class="bubble-text">${msg.text || ""}</span>`;
+      if (msg.type === 'text') {
+          contentHTML = `<span class="bubble-text">${msg.text || ""}</span>`;
+      }
       else if (msg.type === 'image') {
-          const btnId = "dl-img-" + msg._id;
-          contentHTML = `<div class="img-wrapper" onclick="openImgModal('${msg.text}'); event.stopPropagation();"><img src="${msg.text}" class="msg-img"><div id="${btnId}" class="dl-btn-img"><i class="fas fa-download"></i></div></div>`;
-          setTimeout(() => { 
-              const el = document.getElementById(btnId);
-              if(el) el.onclick = (e) => { e.stopPropagation(); downloadBase64File(msg.text, "img.png"); }; 
-          }, 0);
+          // IMAGE: Click opens modal. 
+          contentHTML = `<div class="img-wrapper" onclick="openImgModal('${msg.text}', '${msg._id}', ${isMine}); event.stopPropagation();"><img src="${msg.text}" class="msg-img"></div>`;
       } 
       else if (msg.type === 'document') {
+          // DOCUMENT: Add 'X' button if it's mine
+          const delBtn = isMine ? `<i class="fas fa-times direct-del-btn" onclick="deleteDirect('${msg._id}')"></i>` : ``;
+          
           const btnId = "dl-doc-" + msg._id;
-          contentHTML = `<div class="doc-container"><i class="fas fa-file-pdf doc-icon"></i><span class="doc-name">${msg.fileName}</span><div id="${btnId}" class="dl-btn-doc"><i class="fas fa-download"></i></div></div>`;
+          contentHTML = `<div class="doc-container"><i class="fas fa-file-pdf doc-icon"></i><span class="doc-name">${msg.fileName}</span><div id="${btnId}" class="dl-btn-doc"><i class="fas fa-download"></i></div> ${delBtn} </div>`;
           setTimeout(() => { 
               const el = document.getElementById(btnId);
               if(el) el.onclick = (e) => { e.stopPropagation(); downloadBase64File(msg.text, msg.fileName); }; 
           }, 0);
       }
 
-      // META DATA
+      // METADATA
       const timeSent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
       let statusContent = "Sent";
       if (msg.readAt) {
           const readDate = new Date(msg.readAt);
@@ -400,8 +444,8 @@
       li.innerHTML = `${avatarHTML}<div class="msg-bubble">${contentHTML}${metaHTML}</div>`;
       
       li.onclick = (e) => {
-        if(e.target.closest('.dl-btn-img') || e.target.closest('.dl-btn-doc')) return;
-
+        if(e.target.closest('.dl-btn-doc') || e.target.closest('.direct-del-btn')) return;
+        
         const bubble = li.querySelector('.msg-bubble');
         if (bubble.classList.contains('show-info')) {
             bubble.classList.remove('show-info');
@@ -411,23 +455,26 @@
         }
       };
 
+      // Only show Menu on TEXT messages (Docs/Images use direct delete)
       li.oncontextmenu = (e) => {
-        if (msg.username === myName) {
+        if (msg.username === myName && msg.type === 'text') {
             e.preventDefault(); e.stopPropagation(); 
             selectedMsgId = msg._id; selectedMsgText = msg.text; 
-            if(msg.type === 'text') showMenu(e); else showMenuDeleteOnly(e);
+            showMenu(e);
         }
       };
 
-      // Mobile Long Press
+      // Mobile Long Press (Text Only)
       let pressTimer;
       li.addEventListener('touchstart', (e) => {
-          pressTimer = setTimeout(() => {
-              if (msg.username === myName) {
-                  selectedMsgId = msg._id; selectedMsgText = msg.text; 
-                  if(msg.type === 'text') showMenu(e.touches[0]); else showMenuDeleteOnly(e.touches[0]);
-              }
-          }, 600); 
+          if(msg.type === 'text') {
+              pressTimer = setTimeout(() => {
+                  if (msg.username === myName) {
+                      selectedMsgId = msg._id; selectedMsgText = msg.text; 
+                      showMenu(e.touches[0]);
+                  }
+              }, 600); 
+          }
       });
       li.addEventListener('touchend', () => clearTimeout(pressTimer));
 
@@ -437,17 +484,22 @@
     function sendImage() { const file = document.getElementById('img-upload').files[0]; if(!file) return; const reader = new FileReader(); reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'image' }); reader.readAsDataURL(file); }
     function sendDoc() { const file = document.getElementById('doc-upload').files[0]; if(!file) return; if(file.size > 12*1024*1024) return alert("Too large"); const reader = new FileReader(); reader.onload = (e) => socket.emit('chat message', { text: e.target.result, type: 'document', fileName: file.name }); reader.readAsDataURL(file); }
 
+    // --- DELETE LOGIC ---
+    function deleteDirect(id) {
+        if(confirm("Delete this document?")) {
+            socket.emit('unsend-message', id);
+        }
+    }
+
     const menu = document.getElementById('context-menu'); const overlay = document.getElementById('menu-overlay');
     function showMenu(e) {
       let x = e.clientX; let y = e.clientY;
       if (x + 120 > window.innerWidth) x = window.innerWidth - 130; if (y + 100 > window.innerHeight) y = window.innerHeight - 110;
       menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.style.display = 'flex'; overlay.style.display = 'block';
-      menu.firstElementChild.style.display = 'flex';
     }
-    function showMenuDeleteOnly(e) { showMenu(e); menu.firstElementChild.style.display = 'none'; }
     function closeMenu() { menu.style.display = 'none'; overlay.style.display = 'none'; }
     function unsend() { 
-        if (confirm("Are you sure you want to delete this message?")) {
+        if (confirm("Are you sure?")) {
             if(selectedMsgId) socket.emit('unsend-message', selectedMsgId); 
         }
         closeMenu(); 
